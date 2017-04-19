@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -26,6 +28,8 @@ import (
 //  2. Exec out and create the user via useradd with the correct shell and groups
 //	3. Create the .ssh directory in the users directory with the correct permissions
 //	4. Create the authorized_key file in the ssh directory
+
+// HELPERS
 
 // Generic check function to avoid repeatedly checking for errors
 func check(e error) {
@@ -89,6 +93,65 @@ func getUIDByUserName(userName string) int {
 	}
 
 	return m[userName]
+}
+
+// VARIOUS FUNCTIONS
+
+func getMasterFile(workDir string) error {
+	masterURL := os.Getenv("MASTER_URL")
+	if masterURL == "" {
+		return errors.New("No Master URL passed in")
+	}
+
+	fmt.Printf("Getting master url: %s\n", masterURL)
+
+	cmd1 := exec.Command("curl", "-s", masterURL)
+	cmd2 := exec.Command("tar", "tar -zxC", workDir)
+
+	pr, pw := io.Pipe()
+	cmd1.Stdout = pw
+	cmd2.Stdin = pr
+	cmd2.Stdout = os.Stdout
+
+	cmd1.Start()
+	cmd2.Start()
+
+	go func() {
+		defer pw.Close()
+		cmd1.Wait()
+	}()
+	cmd2.Wait()
+
+	return nil
+}
+
+func getUserFile(workDir string) error {
+	userURL := os.Getenv("USER_URL")
+	if userURL == "" {
+		return errors.New("No Master URL passed in")
+	}
+
+	fmt.Printf("Getting user url: %s\n", userURL)
+
+	cmd1 := exec.Command("curl", "-s", userURL)
+	cmd2 := exec.Command("tar", "tar -zxC", workDir)
+
+	pr, pw := io.Pipe()
+	cmd1.Stdout = pw
+	cmd2.Stdin = pr
+	cmd2.Stdout = os.Stdout
+
+	cmd1.Start()
+	cmd2.Start()
+
+	go func() {
+		defer pw.Close()
+		cmd1.Wait()
+	}()
+	cmd2.Wait()
+
+	return nil
+
 }
 
 // Get the WORK_DIR environment variable and create the directory if it doesn't exist
@@ -182,6 +245,12 @@ func main() {
 	}
 
 	workDir := getWorkingDirectory()
+
+	err := getMasterFile(workDir)
+	check(err)
+
+	err = getUserFile(workDir)
+	check(err)
 
 	// map for users to groups
 	m := make(map[string][]string)
