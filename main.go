@@ -132,8 +132,9 @@ func getUserFile(workDir string) error {
 
 	fmt.Printf("Getting user url and uncompressing it: %s\n", userURL)
 
+	userLocation := workDir + "/data_bags"
 	cmd1 := exec.Command("curl", "-s", userURL)
-	cmd2 := exec.Command("tar", "-zxC", workDir)
+	cmd2 := exec.Command("tar", "-zxC", userLocation)
 
 	pr, pw := io.Pipe()
 	cmd1.Stdout = pw
