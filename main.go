@@ -323,6 +323,6 @@ func main() {
 		}
 	}
 
-	err = os.Remove(workDir)
+	err = os.RemoveAll(workDir)
 	check(err)
 }
