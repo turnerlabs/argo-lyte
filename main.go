@@ -142,6 +142,16 @@ func getWorkingDirectory() string {
 	return workDir
 }
 
+// Remove the WORK_DIR if it exists
+func removeWorkingDirectory(workDir string) error {
+	// if it exists remove it
+	if _, err := os.Stat(workDir); os.IsExist(err) {
+		os.Remove(workDir)
+	}
+
+	return nil
+}
+
 // Pull the group information from the json file into a group struct so I can do something with it
 func getGroupFromFile(file os.FileInfo, groupsDir string) (Group, error) {
 	// Read the json file and marshall it into a struct
@@ -322,4 +332,7 @@ func main() {
 			}
 		}
 	}
+
+	err = removeWorkingDirectory(workDir)
+	check(err)
 }
