@@ -103,10 +103,9 @@ func getMasterFile(workDir string) error {
 		return errors.New("No Master URL passed in")
 	}
 
-	fmt.Printf("Getting master url: %s\n", masterURL)
-
+	fmt.Printf("Getting master url and uncompressing it: %s\n", masterURL)
 	cmd1 := exec.Command("curl", "-s", masterURL)
-	cmd2 := exec.Command("tar", "tar -zxC", workDir)
+	cmd2 := exec.Command("tar", "-zxC", workDir)
 
 	pr, pw := io.Pipe()
 	cmd1.Stdout = pw
@@ -131,10 +130,10 @@ func getUserFile(workDir string) error {
 		return errors.New("No Master URL passed in")
 	}
 
-	fmt.Printf("Getting user url: %s\n", userURL)
+	fmt.Printf("Getting user url and uncompressing it: %s\n", userURL)
 
 	cmd1 := exec.Command("curl", "-s", userURL)
-	cmd2 := exec.Command("tar", "tar -zxC", workDir)
+	cmd2 := exec.Command("tar", "-zxC", workDir)
 
 	pr, pw := io.Pipe()
 	cmd1.Stdout = pw
