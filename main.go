@@ -97,33 +97,6 @@ func getUIDByUserName(userName string) int {
 
 // VARIOUS FUNCTIONS
 
-func getMasterFile(workDir string) error {
-	masterURL := os.Getenv("MASTER_URL")
-	if masterURL == "" {
-		return errors.New("No Master URL passed in")
-	}
-
-	fmt.Printf("Getting master url and uncompressing it: %s\n", masterURL)
-	cmd1 := exec.Command("curl", "-s", masterURL)
-	cmd2 := exec.Command("tar", "-zxC", workDir)
-
-	pr, pw := io.Pipe()
-	cmd1.Stdout = pw
-	cmd2.Stdin = pr
-	cmd2.Stdout = os.Stdout
-
-	cmd1.Start()
-	cmd2.Start()
-
-	go func() {
-		defer pw.Close()
-		cmd1.Wait()
-	}()
-	cmd2.Wait()
-
-	return nil
-}
-
 func getUserFile(workDir string) error {
 	userURL := os.Getenv("USER_URL")
 	if userURL == "" {
@@ -132,9 +105,8 @@ func getUserFile(workDir string) error {
 
 	fmt.Printf("Getting user url and uncompressing it: %s\n", userURL)
 
-	userLocation := workDir + "/data_bags"
 	cmd1 := exec.Command("curl", "-s", userURL)
-	cmd2 := exec.Command("tar", "-zxC", userLocation)
+	cmd2 := exec.Command("tar", "-zxC", workDir)
 
 	pr, pw := io.Pipe()
 	cmd1.Stdout = pw
@@ -246,10 +218,7 @@ func main() {
 
 	workDir := getWorkingDirectory()
 
-	err := getMasterFile(workDir)
-	check(err)
-
-	err = getUserFile(workDir)
+	err := getUserFile(workDir)
 	check(err)
 
 	// map for users to groups
@@ -257,7 +226,7 @@ func main() {
 
 	// Spin through the groups data bag directory creating groups and building the above map
 	// to eventually add the users to the appropriate groups
-	groupsDir := workDir + "/data_bags/groups"
+	groupsDir := workDir + "/groups"
 	fmt.Printf("Reading directory: %s\n", groupsDir)
 	files, _ := ioutil.ReadDir(groupsDir)
 	for _, file := range files {
@@ -297,7 +266,7 @@ func main() {
 	// Spin through the users data bag directory creating users
 	// , add the users to the appropriate groups
 	// , create the .ssh directory and authorized_key file
-	usersDir := workDir + "/data_bags/users"
+	usersDir := workDir + "/users"
 	fmt.Printf("Reading directory: %s\n", usersDir)
 	files, _ = ioutil.ReadDir(usersDir)
 	for _, file := range files {
