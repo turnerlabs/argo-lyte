@@ -345,27 +345,25 @@ func main() {
 			if newUser {
 				groups := m[user.ID]
 				userAdd(user, groups)
-			}
-		}
 
-		// Create the .ssh directory with only the users accessible permissions then
-		// put the ssh key in the directory(which should allow the user to ssh in)
-		if !del {
-			sshDir := "/home/" + user.ID + "/.ssh"
+				// Create the .ssh directory with only the users accessible permissions then
+				// put the ssh key in the directory(which should allow the user to ssh in)
+				sshDir := "/home/" + user.ID + "/.ssh"
 
-			fmt.Printf("Creating directory: %s\n", sshDir)
+				fmt.Printf("Creating directory: %s\n", sshDir)
 
-			err = os.Mkdir(sshDir, 0700)
-			check(err)
-
-			fmt.Printf("Changing owner for: %s to %s\n", sshDir, user.ID)
-
-			err = os.Chown(sshDir, getUIDByUserName(user.ID), getGIDByGroupName(user.ID))
-			check(err)
-
-			if len(user.SSHkeys) > 0 {
-				err = createAuthorizedKeyFile(user, sshDir)
+				err = os.Mkdir(sshDir, 0700)
 				check(err)
+
+				fmt.Printf("Changing owner for: %s to %s\n", sshDir, user.ID)
+
+				err = os.Chown(sshDir, getUIDByUserName(user.ID), getGIDByGroupName(user.ID))
+				check(err)
+
+				if len(user.SSHkeys) > 0 {
+					err = createAuthorizedKeyFile(user, sshDir)
+					check(err)
+				}
 			}
 		}
 	}
