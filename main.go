@@ -269,7 +269,6 @@ func main() {
 	groupsDir := workDir + "/groups"
 	fmt.Printf("Reading directory: %s\n", groupsDir)
 	files, _ := ioutil.ReadDir(groupsDir)
-	newGroup := false
 	keyPrefix := "group-"
 	for _, file := range files {
 		if !strings.Contains(file.Name(), ".json") {
@@ -284,20 +283,21 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if data == nil {
-			newGroup = true
-			fmt.Printf("Creating new group in leveldb with key: %s\n", key)
-			err = db.Put([]byte(key), []byte(group.ID), nil)
-			check(err)
-		} else {
-			fmt.Printf("Group %s in leveldb with key: %s already exists.\n", group.ID, key)
-		}
-
 		if del {
 			err = db.Delete([]byte(key), nil)
 			check(err)
 			groupDelete(group.ID)
 		} else {
+			newGroup := false
+			if data == nil {
+				newGroup = true
+				fmt.Printf("Creating new group in leveldb with key: %s\n", key)
+				err = db.Put([]byte(key), []byte(group.ID), nil)
+				check(err)
+			} else {
+				fmt.Printf("Group %s in leveldb with key: %s already exists.\n", group.ID, key)
+			}
+
 			if newGroup {
 				groupAdd(group.ID)
 			}
@@ -319,7 +319,6 @@ func main() {
 	usersDir := workDir + "/users"
 	fmt.Printf("Reading directory: %s\n", usersDir)
 	files, _ = ioutil.ReadDir(usersDir)
-	newUser := false
 	keyPrefix = "user-"
 
 	for _, file := range files {
@@ -335,20 +334,21 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if data == nil {
-			fmt.Printf("Creating new user in leveldb with key: %s\n", key)
-			newUser = true
-			err = db.Put([]byte(key), []byte(user.ID), nil)
-			check(err)
-		} else {
-			fmt.Printf("User %s in leveldb with key: %s already exists.\n", user.ID, key)
-		}
-
 		if del {
 			err = db.Delete([]byte(key), nil)
 			check(err)
 			userDelete(user.ID)
 		} else {
+			newUser := false
+			if data == nil {
+				fmt.Printf("Creating new user in leveldb with key: %s\n", key)
+				newUser = true
+				err = db.Put([]byte(key), []byte(user.ID), nil)
+				check(err)
+			} else {
+				fmt.Printf("User %s in leveldb with key: %s already exists.\n", user.ID, key)
+			}
+
 			if newUser {
 				groups := m[user.ID]
 				userAdd(user, groups)
