@@ -285,6 +285,7 @@ func main() {
 
 		if data == nil {
 			newGroup = true
+			fmt.Printf("Creating new group in leveldb with key: %s\n", key)
 			err = db.Put([]byte(key), []byte(group.ID), nil)
 			check(err)
 		}
@@ -323,14 +324,15 @@ func main() {
 		}
 
 		user, err := getUserFromFile(file, usersDir)
-		checkWithoutPanic(err)
+		check(err)
 
 		key := keyPrefix + user.ID
 
 		data, err := db.Get([]byte(key), nil)
-		check(err)
+		checkWithoutPanic(err)
 
 		if data == nil {
+			fmt.Printf("Creating new user in leveldb with key: %s\n", key)
 			newUser = true
 			err = db.Put([]byte(key), []byte(user.ID), nil)
 			check(err)
