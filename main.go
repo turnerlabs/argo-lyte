@@ -40,6 +40,12 @@ func check(e error) {
 	}
 }
 
+func checkWithoutPanic(e error) {
+	if e != nil {
+		fmt.Println(e)
+	}
+}
+
 func getGIDByGroupName(groupName string) int {
 	group, err := user.LookupGroup(groupName)
 	check(err)
@@ -275,7 +281,7 @@ func main() {
 		key := keyPrefix + group.ID
 
 		data, err := db.Get([]byte(key), nil)
-		check(err)
+		checkWithoutPanic(err)
 
 		if data == nil {
 			newGroup = true
@@ -317,7 +323,7 @@ func main() {
 		}
 
 		user, err := getUserFromFile(file, usersDir)
-		check(err)
+		checkWithoutPanic(err)
 
 		key := keyPrefix + user.ID
 
