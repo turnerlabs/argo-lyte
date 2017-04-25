@@ -12,8 +12,6 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
-
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 // Things to consider that I have not thought about
@@ -190,13 +188,13 @@ func main() {
 
 	workDir := getWorkingDirectory()
 
-	// use level db to track users. needed for deletion.
-	db, err := leveldb.OpenFile("/tmp/db", nil)
-	check(err)
+	// // use level db to track users. needed for deletion.
+	// db, err := leveldb.OpenFile("/tmp/db", nil)
+	// check(err)
 
-	defer db.Close()
+	// defer db.Close()
 
-	err = getUserFile(workDir)
+	err := getUserFile(workDir)
 	check(err)
 
 	// map for users to groups
@@ -255,15 +253,15 @@ func main() {
 		user, err := getUserFromFile(file, usersDir)
 		check(err)
 
-		data, err := db.Get([]byte(user.ID), nil)
-		check(err)
+		// data, err := db.Get([]byte(user.ID), nil)
+		// check(err)
 
-		if data == nil {
-			err = db.Put([]byte(user.ID), nil, nil)
-			check(err)
-		} else {
+		// if data == nil {
+		// 	err = db.Put([]byte(user.ID), nil, nil)
+		// 	check(err)
+		// } else {
 
-		}
+		// }
 
 		// Used by user execs
 		var cmd *exec.Cmd
