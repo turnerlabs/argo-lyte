@@ -284,6 +284,10 @@ func main() {
 		checkWithoutPanic(err)
 
 		if del {
+			if data == nil {
+				os.Exit(0)
+			}
+
 			err = db.Delete([]byte(key), nil)
 			check(err)
 			groupDelete(group.ID)
