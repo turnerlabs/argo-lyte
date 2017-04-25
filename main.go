@@ -12,6 +12,8 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 // Things to consider that I have not thought about
@@ -176,6 +178,61 @@ func createAuthorizedKeyFile(user ArgoUser, sshDir string) error {
 	return nil
 }
 
+func groupAdd(groupName string) {
+	var cmd *exec.Cmd
+	fmt.Printf("Creating group: %v\n", groupName)
+	cmd = exec.Command("groupadd", groupName)
+
+	err := cmd.Start()
+	check(err)
+
+	err = cmd.Wait()
+	check(err)
+}
+
+func groupDelete(groupName string) {
+	var cmd *exec.Cmd
+	fmt.Printf("Creating group: %v\n", groupName)
+	cmd = exec.Command("groupdel", groupName)
+
+	err := cmd.Start()
+	check(err)
+
+	err = cmd.Wait()
+	check(err)
+}
+
+func userAdd(user ArgoUser, groups []string) {
+	var cmd *exec.Cmd
+	fmt.Printf("Creating user: %v and adding to these groups: %v\n", user.ID, groups)
+
+	homeDir := "/home/" + user.ID
+	if len(groups) == 0 {
+		cmd = exec.Command("useradd", "--shell", user.Shell, "--home", homeDir, "--create-home", user.ID)
+	} else {
+		commaUsers := strings.Join(groups, ",")
+		cmd = exec.Command("useradd", "--shell", user.Shell, "--home", homeDir, "--groups", commaUsers, "--create-home", user.ID)
+	}
+
+	err := cmd.Start()
+	check(err)
+
+	err = cmd.Wait()
+	check(err)
+}
+
+func userDelete(userName string) {
+	var cmd *exec.Cmd
+	fmt.Printf("Removing user: %v\n", userName)
+	cmd = exec.Command("userdel", "--remove", userName)
+
+	err := cmd.Start()
+	check(err)
+
+	err = cmd.Wait()
+	check(err)
+}
+
 // Main
 func main() {
 	del := false
@@ -188,13 +245,13 @@ func main() {
 
 	workDir := getWorkingDirectory()
 
-	// // use level db to track users. needed for deletion.
-	// db, err := leveldb.OpenFile("/tmp/db", nil)
-	// check(err)
+	// use level db to track users. needed for deletion.
+	db, err := leveldb.OpenFile("/tmp/db", nil)
+	check(err)
 
-	// defer db.Close()
+	defer db.Close()
 
-	err := getUserFile(workDir)
+	err = getUserFile(workDir)
 	check(err)
 
 	// map for users to groups
@@ -205,6 +262,8 @@ func main() {
 	groupsDir := workDir + "/groups"
 	fmt.Printf("Reading directory: %s\n", groupsDir)
 	files, _ := ioutil.ReadDir(groupsDir)
+	newGroup := false
+	keyPrefix := "group-"
 	for _, file := range files {
 		if !strings.Contains(file.Name(), ".json") {
 			continue
@@ -213,21 +272,25 @@ func main() {
 		group, err := getGroupFromFile(file, groupsDir)
 		check(err)
 
-		// Used by group execs
-		var cmd *exec.Cmd
+		key := keyPrefix + group.ID
+
+		data, err := db.Get([]byte(key), nil)
+		check(err)
+
+		if data == nil {
+			newGroup = true
+			err = db.Put([]byte(key), []byte(group.ID), nil)
+			check(err)
+		}
 
 		if del {
-			fmt.Printf("Deleting group: %v\n", group.ID)
-			cmd = exec.Command("groupdel", group.ID)
+			err = db.Delete([]byte(key), nil)
+			groupDelete(group.ID)
 		} else {
-			fmt.Printf("Creating group: %v\n", group.ID)
-			cmd = exec.Command("groupadd", group.ID)
+			if newGroup {
+				groupAdd(group.ID)
+			}
 		}
-		err = cmd.Start()
-		check(err)
-
-		err = cmd.Wait()
-		check(err)
 
 		// Build a map of the users to groups
 		for _, u := range group.Users {
@@ -245,6 +308,9 @@ func main() {
 	usersDir := workDir + "/users"
 	fmt.Printf("Reading directory: %s\n", usersDir)
 	files, _ = ioutil.ReadDir(usersDir)
+	newUser := false
+	keyPrefix = "user-"
+
 	for _, file := range files {
 		if !strings.Contains(file.Name(), ".json") {
 			continue
@@ -253,44 +319,31 @@ func main() {
 		user, err := getUserFromFile(file, usersDir)
 		check(err)
 
-		// data, err := db.Get([]byte(user.ID), nil)
-		// check(err)
+		key := keyPrefix + user.ID
 
-		// if data == nil {
-		// 	err = db.Put([]byte(user.ID), nil, nil)
-		// 	check(err)
-		// } else {
+		data, err := db.Get([]byte(key), nil)
+		check(err)
 
-		// }
-
-		// Used by user execs
-		var cmd *exec.Cmd
-
-		homeDir := "/home/" + user.ID
-		if del {
-			fmt.Printf("Removing user: %v\n", user.ID)
-			cmd = exec.Command("userdel", "--remove", user.ID)
-		} else {
-			groups := m[user.ID]
-			fmt.Printf("Creating user: %v and adding to these groups: %v\n", user.ID, groups)
-
-			if len(groups) == 0 {
-				cmd = exec.Command("useradd", "--shell", user.Shell, "--home", homeDir, "--create-home", user.ID)
-			} else {
-				commaUsers := strings.Join(groups, ",")
-				cmd = exec.Command("useradd", "--shell", user.Shell, "--home", homeDir, "--groups", commaUsers, "--create-home", user.ID)
-			}
+		if data == nil {
+			newUser = true
+			err = db.Put([]byte(key), []byte(user.ID), nil)
+			check(err)
 		}
 
-		err = cmd.Start()
-		check(err)
-		err = cmd.Wait()
-		check(err)
+		if del {
+			err = db.Delete([]byte(key), nil)
+			userDelete(user.ID)
+		} else {
+			if newUser {
+				groups := m[user.ID]
+				userAdd(user, groups)
+			}
+		}
 
 		// Create the .ssh directory with only the users accessible permissions then
 		// put the ssh key in the directory(which should allow the user to ssh in)
 		if !del {
-			sshDir := homeDir + "/.ssh"
+			sshDir := "/home/" + user.ID + "/.ssh"
 
 			fmt.Printf("Creating directory: %s\n", sshDir)
 
