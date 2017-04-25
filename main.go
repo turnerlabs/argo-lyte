@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // Things to consider that I have not thought about
@@ -246,7 +248,9 @@ func main() {
 	check(err)
 
 	// map for users to groups
-	m := make(map[string][]string)
+	mUserGroups := make(map[string][]string)
+	mGroup := make(map[string]string)
+	mUser := make(map[string]string)
 
 	// Spin through the groups data bag directory creating groups and building the above map
 	// to eventually add the users to the appropriate groups
@@ -262,6 +266,7 @@ func main() {
 		group := getGroupFromFile(file, groupsDir)
 
 		key := keyPrefix + group.ID
+		mGroup[key] = group.ID
 
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
@@ -292,10 +297,10 @@ func main() {
 
 		// Build a map of the users to groups
 		for _, u := range group.Users {
-			if m[u] == nil {
-				m[u] = []string{group.ID}
+			if mUserGroups[u] == nil {
+				mUserGroups[u] = []string{group.ID}
 			} else {
-				m[u] = append(m[u], group.ID)
+				mUserGroups[u] = append(mUserGroups[u], group.ID)
 			}
 		}
 	}
@@ -316,6 +321,7 @@ func main() {
 		user := getUserFromFile(file, usersDir)
 
 		key := keyPrefix + user.ID
+		mUser[key] = user.ID
 
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
@@ -336,7 +342,7 @@ func main() {
 			}
 
 			if newUser {
-				groups := m[user.ID]
+				groups := mUserGroups[user.ID]
 				userAdd(user, groups)
 
 				// Create the .ssh directory with only the users accessible permissions then
@@ -359,6 +365,32 @@ func main() {
 			}
 		}
 	}
+
+	// Loop thru all the records in leveldb with the group prefix and see if they exist in the mGroup map.
+	// Any that exist in leveldb but not in the map should be removed.
+	iter := db.NewIterator(util.BytesPrefix([]byte("group-")), nil)
+	for iter.Next() {
+		n := bytes.IndexByte(iter.Key(), 0)
+		s := string(iter.Key()[:n])
+		if mGroup[s] == "" {
+			fmt.Printf("%s is missing.\n", s)
+		}
+	}
+	iter.Release()
+	err = iter.Error()
+
+	// Loop thru all the records in leveldb with the user prefix and see if they exist in the mUser map.
+	// Any that exist in leveldb but not in the map should be removed.
+	iter = db.NewIterator(util.BytesPrefix([]byte("user-")), nil)
+	for iter.Next() {
+		n := bytes.IndexByte(iter.Key(), 0)
+		s := string(iter.Key()[:n])
+		if mGroup[s] == "" {
+			fmt.Printf("%s is missing.\n", s)
+		}
+	}
+	iter.Release()
+	err = iter.Error()
 
 	// Remove working directory from possible prying eyes
 	err = os.RemoveAll(workDir)
