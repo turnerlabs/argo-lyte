@@ -369,12 +369,10 @@ func main() {
 	// Any that exist in leveldb but not in the map should be removed.
 	iter := db.NewIterator(util.BytesPrefix([]byte("group-")), nil)
 	for iter.Next() {
-		fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
-		// n := bytes.IndexByte(iter.Key(), 0)
-		// s := string(iter.Key()[:n])
-		// if mGroup[s] == "" {
-		// 	fmt.Printf("%s is missing.\n", s)
-		// }
+		// fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
+		if mGroup[string(iter.Key())] == "" {
+			fmt.Printf("%s is missing.\n", string(iter.Key()))
+		}
 	}
 	iter.Release()
 	err = iter.Error()
@@ -383,12 +381,10 @@ func main() {
 	// Any that exist in leveldb but not in the map should be removed.
 	iter = db.NewIterator(util.BytesPrefix([]byte("user-")), nil)
 	for iter.Next() {
-		fmt.Printf("%v : %v.\n", iter.Key(), iter.Value())
-		// n := bytes.IndexByte(iter.Key(), 0)
-		// s := string(iter.Key()[:n])
-		// if mGroup[s] == "" {
-		// 	fmt.Printf("%s is missing.\n", s)
-		// }
+		// fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
+		if mGroup[string(iter.Key())] == "" {
+			fmt.Printf("%s is missing.\n", string(iter.Key()))
+		}
 	}
 	iter.Release()
 	err = iter.Error()
