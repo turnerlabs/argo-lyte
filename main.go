@@ -369,7 +369,7 @@ func main() {
 	// Any that exist in leveldb but not in the map should be removed.
 	iter := db.NewIterator(util.BytesPrefix([]byte("group-")), nil)
 	for iter.Next() {
-		fmt.Printf("%v : %v.\n", iter.Key(), iter.Value())
+		fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
 		// n := bytes.IndexByte(iter.Key(), 0)
 		// s := string(iter.Key()[:n])
 		// if mGroup[s] == "" {
