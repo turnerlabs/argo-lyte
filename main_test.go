@@ -18,7 +18,7 @@ func TestGetUIDByUserName(t *testing.T) {
 	assert.Equal(t, result, 210)
 }
 
-func TestGetMasterFile(t *testing.T) {
-	err := getMasterFile(getWorkingDirectory())
+func TestGetUserFile(t *testing.T) {
+	err := getUserFile(getWorkingDirectory())
 	assert.Equal(t, err, nil)
 }
