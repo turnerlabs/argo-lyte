@@ -75,13 +75,13 @@ func getUIDByUserName(userName string) int {
 // VARIOUS FUNCTIONS
 
 // Pipe the output of the curl into tar to create the 2 folders(users/groups)
-func getUserFile(workDir string) error {
+func getUserGroupFile(workDir string) error {
 	userURL := os.Getenv("USER_URL")
 	if userURL == "" {
-		return errors.New("No Master URL passed in")
+		return errors.New("No User URL passed in")
 	}
 
-	fmt.Printf("Getting user url and uncompressing it: %s\n", userURL)
+	fmt.Printf("Getting user group url and uncompressing it: %s\n", userURL)
 
 	cmd1 := exec.Command("curl", "-s", userURL)
 	cmd2 := exec.Command("tar", "-zxC", workDir)
@@ -198,7 +198,7 @@ func groupAdd(groupName string) {
 
 func groupDelete(groupName string) {
 	var cmd *exec.Cmd
-	fmt.Printf("Creating group: %v\n", groupName)
+	fmt.Printf("Deleting group: %v\n", groupName)
 	cmd = exec.Command("groupdel", groupName)
 
 	err := cmd.Start()
@@ -229,7 +229,7 @@ func userAdd(user ArgoUser, groups []string) {
 
 func userDelete(userName string) {
 	var cmd *exec.Cmd
-	fmt.Printf("Removing user: %v\n", userName)
+	fmt.Printf("Deleting user: %v\n", userName)
 	cmd = exec.Command("userdel", "--remove", userName)
 
 	err := cmd.Start()
@@ -257,7 +257,8 @@ func main() {
 
 	defer db.Close()
 
-	err = getUserFile(workDir)
+	// pull down the user group file and uncompress it into the work directory
+	err = getUserGroupFile(workDir)
 	check(err)
 
 	// map for users to groups
@@ -294,6 +295,7 @@ func main() {
 
 		if del {
 			err = db.Delete([]byte(key), nil)
+			check(err)
 			groupDelete(group.ID)
 		} else {
 			if newGroup {
@@ -344,6 +346,7 @@ func main() {
 
 		if del {
 			err = db.Delete([]byte(key), nil)
+			check(err)
 			userDelete(user.ID)
 		} else {
 			if newUser {
