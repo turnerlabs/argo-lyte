@@ -382,7 +382,7 @@ func main() {
 	iter = db.NewIterator(util.BytesPrefix([]byte("user-")), nil)
 	for iter.Next() {
 		// fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
-		if mGroup[string(iter.Key())] == "" {
+		if mUser[string(iter.Key())] == "" {
 			fmt.Printf("%s is missing.\n", string(iter.Key()))
 		}
 	}
