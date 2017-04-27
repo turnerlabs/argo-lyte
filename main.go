@@ -253,8 +253,7 @@ func main() {
 	defer db.Close()
 
 	// pull down the user group file and uncompress it into the work directory
-	err = getUserGroupFile(workDir)
-	check(err)
+	getUserGroupFile(workDir)
 
 	// map for users to groups and leveldb comparisons
 	mUserGroups := make(map[string][]string)
