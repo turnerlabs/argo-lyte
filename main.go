@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -231,6 +233,13 @@ func userDelete(userName string) {
 	check(err)
 }
 
+func byteArrayToStringArray(bArray []byte) []string {
+	buffer := bytes.NewBuffer(bArray)
+	backToStringSlice := []string{}
+	gob.NewDecoder(buffer).Decode(&backToStringSlice)
+	return backToStringSlice
+}
+
 /////////////////////////////////////////////////////////////
 
 // Main
@@ -406,6 +415,8 @@ func main() {
 		// fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
 		if mUser[string(iter.Key())] == "" {
 			fmt.Printf("%s is missing.\n", string(iter.Key()))
+			abc := byteArrayToStringArray(iter.Value())
+			fmt.Printf("%v\n", abc)
 		}
 	}
 	iter.Release()
