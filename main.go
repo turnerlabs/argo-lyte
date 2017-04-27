@@ -38,7 +38,7 @@ import (
 // Generic check function to avoid repeatedly checking for errors and panic after logging error
 func check(e error) {
 	if e != nil {
-		fmt.Println(e)
+		fmt.Println(e.Error())
 		panic(e)
 	}
 }
@@ -235,13 +235,19 @@ func userDelete(userName string) {
 
 // Main
 // Pass in -d to remove all users and groups
+// Pass in -t to use local files(don't get or remove the gzip'd file)
 func main() {
 	del := false
+	test := false
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == "-d" {
 			del = true
 		}
+		if os.Args[1] == "-t" {
+			test = true
+		}
+
 	}
 
 	workDir := getWorkingDirectory()
@@ -252,8 +258,10 @@ func main() {
 
 	defer db.Close()
 
-	// pull down the user group file and uncompress it into the work directory
-	getUserGroupFile(workDir)
+	if !test {
+		// pull down the user group file and uncompress it into the work directory
+		getUserGroupFile(workDir)
+	}
 
 	// map for users to groups and leveldb comparisons
 	mUserGroups := make(map[string][]string)
@@ -403,7 +411,9 @@ func main() {
 	iter.Release()
 	err = iter.Error()
 
-	// Remove working directory from possible prying eyes
-	err = os.RemoveAll(workDir)
-	check(err)
+	if !test {
+		// Remove working directory from possible prying eyes
+		err = os.RemoveAll(workDir)
+		check(err)
+	}
 }
