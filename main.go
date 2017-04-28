@@ -455,25 +455,10 @@ func main() {
 		}
 	}
 
-	// Loop thru all the records in leveldb with the group prefix and see if they exist in the mGroup map.
-	// Any that exist in leveldb but not in the map should be removed.
-	iter := db.NewIterator(util.BytesPrefix([]byte("group@")), nil)
-	for iter.Next() {
-		//fmt.Printf("%s\n", mGroup[string(iter.Key())])
-		if mGroup[string(iter.Key())] == "" {
-			fmt.Printf("%s is missing.\n", string(iter.Key()))
-			err = db.Delete([]byte(iter.Key()), nil)
-			check(err)
-			groupDelete(string(iter.Value()))
-		}
-	}
-	iter.Release()
-	err = iter.Error()
-
 	// Loop thru all the records in leveldb with the user prefix and see if they exist in the mUser map.
 	// Any that exist in leveldb but not in the map should be removed.
 	// If the user exists in both the map and leveldb, check the groups to make sure we didn't add or remove the user from a group
-	iter = db.NewIterator(util.BytesPrefix([]byte("user@")), nil)
+	iter := db.NewIterator(util.BytesPrefix([]byte("user@")), nil)
 	for iter.Next() {
 		if mUser[string(iter.Key())] == "" {
 			fmt.Printf("%s is missing.\n", string(iter.Key()))
@@ -485,28 +470,64 @@ func main() {
 			existingGroups := byteArrayToStringArray(iter.Value())
 			newGroups := mUserGroups[parseUserKey(string(iter.Key()))]
 
-			// check for removal
+			// check for groups to remove
+			groupsToRemove := make([]string, 0)
 			for _, existingGroup := range existingGroups {
 				groupExists := contains(newGroups, existingGroup)
 				if !groupExists {
 					fmt.Printf("Group %s is being removed from %s.\n", existingGroup, parseUserKey(string(iter.Key())))
-
-					bArray := stringArrayToByteArray(mUserGroups[user.ID])
-					err = db.Put([]byte(key), bArray, nil)
-					check(err)
-
+					groupsToRemove = append(groupsToRemove, existingGroup)
 					deleteGroupFromUser(parseUserKey(string(iter.Key())), existingGroup)
 				}
 			}
 			// check for new group
+			groupsToAdd := make([]string, 0)
 			for _, newGroup := range newGroups {
 				groupExists := contains(existingGroups, newGroup)
 				if !groupExists {
 					fmt.Printf("Group %s is being added to %s.\n", newGroup, parseUserKey(string(iter.Key())))
+					groupsToAdd = append(groupsToAdd, newGroup)
 					addGroupToUser(parseUserKey(string(iter.Key())), newGroup)
 				}
 			}
+			// if adding groups
+			if len(groupsToAdd) > 0 {
+				newGroups = make([]string, len(existingGroups))
+				copy(newGroups, existingGroups)
 
+				newGroups = append(newGroups, groupsToAdd...)
+
+				bArray := stringArrayToByteArray(newGroups)
+				err = db.Put(iter.Key(), bArray, nil)
+				check(err)
+			}
+			// if removing groups
+			if len(groupsToRemove) > 0 {
+				newGroups = make([]string, 0)
+				for _, existingGroup := range existingGroups {
+					if !contains(groupsToRemove, existingGroup) {
+						newGroups = append(newGroups, existingGroup)
+					}
+				}
+				bArray := stringArrayToByteArray(newGroups)
+				err = db.Put(iter.Key(), bArray, nil)
+				check(err)
+			}
+		}
+	}
+	iter.Release()
+	err = iter.Error()
+
+	// Loop thru all the records in leveldb with the group prefix and see if they exist in the mGroup map.
+	// Any that exist in leveldb but not in the map should be removed.
+	iter = db.NewIterator(util.BytesPrefix([]byte("group@")), nil)
+	for iter.Next() {
+		//fmt.Printf("%s\n", mGroup[string(iter.Key())])
+		if mGroup[string(iter.Key())] == "" {
+			fmt.Printf("%s is missing.\n", string(iter.Key()))
+			err = db.Delete([]byte(iter.Key()), nil)
+			check(err)
+			groupDelete(string(iter.Value()))
 		}
 	}
 	iter.Release()
