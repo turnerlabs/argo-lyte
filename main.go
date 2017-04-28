@@ -444,7 +444,14 @@ func main() {
 			userKey := parseUserKey(string(iter.Key()))
 			userDelete(userKey)
 		} else {
-			d
+			// check the iterators value against the maps value
+			existingGroups := byteArrayToStringArray(iter.Value())
+			newGroups := mUserGroups[string(iter.Key())]
+			for _, existingGroup := range existingGroups {
+				for _, newGroup := range newGroups {
+
+				}
+			}
 		}
 	}
 	iter.Release()
