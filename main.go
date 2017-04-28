@@ -369,6 +369,8 @@ func main() {
 				check(err)
 			} else {
 				fmt.Printf("User %s in leveldb with key: %s already exists.\n", user.ID, key)
+				abc := byteArrayToStringArray(data)
+				fmt.Printf("%v\n", abc)
 			}
 
 			if newUser {
@@ -415,8 +417,6 @@ func main() {
 		// fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
 		if mUser[string(iter.Key())] == "" {
 			fmt.Printf("%s is missing.\n", string(iter.Key()))
-			abc := byteArrayToStringArray(iter.Value())
-			fmt.Printf("%v\n", abc)
 		}
 	}
 	iter.Release()
