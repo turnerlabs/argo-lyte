@@ -200,6 +200,34 @@ func groupDelete(groupName string) {
 	check(err)
 }
 
+// Add a group to a user
+func addGroupToUser(user string, group string) {
+	var cmd *exec.Cmd
+	fmt.Printf("Adding group: %s to user: %s\n", user, group)
+
+	cmd = exec.Command("usermod", "-a", "-G", group, user)
+
+	err := cmd.Start()
+	check(err)
+
+	err = cmd.Wait()
+	check(err)
+}
+
+// Delete a group from a user
+func deleteGroupFromUser(user string, group string) {
+	var cmd *exec.Cmd
+	fmt.Printf("Deleting group: %s from user: %s\n", user, group)
+
+	cmd = exec.Command("gpasswd", "-d", user, group)
+
+	err := cmd.Start()
+	check(err)
+
+	err = cmd.Wait()
+	check(err)
+}
+
 // Add the user via the exec command
 func userAdd(user ArgoUser, groups []string) {
 	var cmd *exec.Cmd
@@ -248,9 +276,20 @@ func byteArrayToStringArray(bArray []byte) []string {
 	return backToStringSlice
 }
 
+// helper function to pull user out of leveldb key
 func parseUserKey(fullKey string) string {
-	splitKey := strings.Split(fullKey, "-")
+	splitKey := strings.Split(fullKey, "@")
 	return splitKey[1]
+}
+
+// simple array contains
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 /////////////////////////////////////////////////////////////
@@ -302,7 +341,7 @@ func main() {
 	groupsDir := workDir + "/groups"
 	fmt.Printf("Reading directory: %s\n", groupsDir)
 	files, _ := ioutil.ReadDir(groupsDir)
-	keyPrefix := "group-"
+	keyPrefix := "group@"
 	for _, file := range files {
 		if !strings.Contains(file.Name(), ".json") {
 			continue
@@ -358,7 +397,7 @@ func main() {
 	usersDir := workDir + "/users"
 	fmt.Printf("Reading directory: %s\n", usersDir)
 	files, _ = ioutil.ReadDir(usersDir)
-	keyPrefix = "user-"
+	keyPrefix = "user@"
 
 	for _, file := range files {
 		if !strings.Contains(file.Name(), ".json") {
@@ -418,7 +457,7 @@ func main() {
 
 	// Loop thru all the records in leveldb with the group prefix and see if they exist in the mGroup map.
 	// Any that exist in leveldb but not in the map should be removed.
-	iter := db.NewIterator(util.BytesPrefix([]byte("group-")), nil)
+	iter := db.NewIterator(util.BytesPrefix([]byte("group@")), nil)
 	for iter.Next() {
 		//fmt.Printf("%s\n", mGroup[string(iter.Key())])
 		if mGroup[string(iter.Key())] == "" {
@@ -434,24 +473,40 @@ func main() {
 	// Loop thru all the records in leveldb with the user prefix and see if they exist in the mUser map.
 	// Any that exist in leveldb but not in the map should be removed.
 	// If the user exists in both the map and leveldb, check the groups to make sure we didn't add or remove the user from a group
-	iter = db.NewIterator(util.BytesPrefix([]byte("user-")), nil)
+	iter = db.NewIterator(util.BytesPrefix([]byte("user@")), nil)
 	for iter.Next() {
-		//fmt.Printf("%s : %v.\n", string(iter.Key()), byteArrayToStringArray(iter.Value()))
 		if mUser[string(iter.Key())] == "" {
 			fmt.Printf("%s is missing.\n", string(iter.Key()))
 			err = db.Delete([]byte(iter.Key()), nil)
 			check(err)
-			userKey := parseUserKey(string(iter.Key()))
-			userDelete(userKey)
+			userDelete(parseUserKey(string(iter.Key())))
 		} else {
 			// check the iterators value against the maps value
 			existingGroups := byteArrayToStringArray(iter.Value())
-			newGroups := mUserGroups[string(iter.Key())]
-			for _, existingGroup := range existingGroups {
-				for _, newGroup := range newGroups {
+			newGroups := mUserGroups[parseUserKey(string(iter.Key()))]
 
+			// check for removal
+			for _, existingGroup := range existingGroups {
+				groupExists := contains(newGroups, existingGroup)
+				if !groupExists {
+					fmt.Printf("Group %s is being removed from %s.\n", existingGroup, parseUserKey(string(iter.Key())))
+
+					bArray := stringArrayToByteArray(mUserGroups[user.ID])
+					err = db.Put([]byte(key), bArray, nil)
+					check(err)
+
+					deleteGroupFromUser(parseUserKey(string(iter.Key())), existingGroup)
 				}
 			}
+			// check for new group
+			for _, newGroup := range newGroups {
+				groupExists := contains(existingGroups, newGroup)
+				if !groupExists {
+					fmt.Printf("Group %s is being added to %s.\n", newGroup, parseUserKey(string(iter.Key())))
+					addGroupToUser(parseUserKey(string(iter.Key())), newGroup)
+				}
+			}
+
 		}
 	}
 	iter.Release()
