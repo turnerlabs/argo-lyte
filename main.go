@@ -233,11 +233,24 @@ func userDelete(userName string) {
 	check(err)
 }
 
+// helper function to deal with conversion of string arrays to byte arrays
+func stringArrayToByteArray(sArray []string) []byte {
+	bufferIn := &bytes.Buffer{}
+	gob.NewEncoder(bufferIn).Encode(sArray)
+	return []byte(bufferIn.Bytes())
+}
+
+// helper function to deal with conversion of byte arrays to string arrays
 func byteArrayToStringArray(bArray []byte) []string {
 	buffer := bytes.NewBuffer(bArray)
 	backToStringSlice := []string{}
 	gob.NewDecoder(buffer).Decode(&backToStringSlice)
 	return backToStringSlice
+}
+
+func parseUserKey(fullKey string) string {
+	splitKey := strings.Split(fullKey, "-")
+	return splitKey[1]
 }
 
 /////////////////////////////////////////////////////////////
@@ -256,7 +269,14 @@ func main() {
 		if os.Args[1] == "-t" {
 			test = true
 		}
-
+		if os.Args[1] == "-dt" {
+			test = true
+			del = true
+		}
+		if os.Args[1] == "-td" {
+			test = true
+			del = true
+		}
 	}
 
 	workDir := getWorkingDirectory()
@@ -364,13 +384,11 @@ func main() {
 			if data == nil {
 				fmt.Printf("Creating new user in leveldb with key: %s\n", key)
 				newUser = true
-				stringByte := "\x00" + strings.Join(mUserGroups[user.ID], "\x20\x00") // x20 = space and x00 = null
-				err = db.Put([]byte(key), []byte(stringByte), nil)
+				bArray := stringArrayToByteArray(mUserGroups[user.ID])
+				err = db.Put([]byte(key), bArray, nil)
 				check(err)
 			} else {
-				fmt.Printf("User %s in leveldb with key: %s already exists.\n", user.ID, key)
-				abc := byteArrayToStringArray(data)
-				fmt.Printf("%v\n", abc)
+				fmt.Printf("User %s with groups: %v in leveldb with key: %s already exists.\n", user.ID, byteArrayToStringArray(data), key)
 			}
 
 			if newUser {
@@ -402,9 +420,12 @@ func main() {
 	// Any that exist in leveldb but not in the map should be removed.
 	iter := db.NewIterator(util.BytesPrefix([]byte("group-")), nil)
 	for iter.Next() {
-		// fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
+		//fmt.Printf("%s\n", mGroup[string(iter.Key())])
 		if mGroup[string(iter.Key())] == "" {
 			fmt.Printf("%s is missing.\n", string(iter.Key()))
+			err = db.Delete([]byte(iter.Key()), nil)
+			check(err)
+			groupDelete(string(iter.Value()))
 		}
 	}
 	iter.Release()
@@ -412,11 +433,18 @@ func main() {
 
 	// Loop thru all the records in leveldb with the user prefix and see if they exist in the mUser map.
 	// Any that exist in leveldb but not in the map should be removed.
+	// If the user exists in both the map and leveldb, check the groups to make sure we didn't add or remove the user from a group
 	iter = db.NewIterator(util.BytesPrefix([]byte("user-")), nil)
 	for iter.Next() {
-		// fmt.Printf("%s : %s.\n", string(iter.Key()), string(iter.Value()))
+		//fmt.Printf("%s : %v.\n", string(iter.Key()), byteArrayToStringArray(iter.Value()))
 		if mUser[string(iter.Key())] == "" {
 			fmt.Printf("%s is missing.\n", string(iter.Key()))
+			err = db.Delete([]byte(iter.Key()), nil)
+			check(err)
+			userKey := parseUserKey(string(iter.Key()))
+			userDelete(userKey)
+		} else {
+			d
 		}
 	}
 	iter.Release()
