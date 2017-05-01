@@ -68,7 +68,7 @@ endif
 ifndef BUMP_VERSION
 	go get -u github.com/Shyp/bump_version
 endif
-	bump_version --version=$(version) minor main.go
+	bump_version minor main.go
 	git push origin --tags
 	mkdir -p releases/$(version)
 	# Change the binary names below to match your tool name
