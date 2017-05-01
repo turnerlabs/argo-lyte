@@ -19,7 +19,7 @@ import (
 )
 
 // VERSION - version
-const VERSION = "0.2.0"
+const VERSION = "0.0.1"
 
 // Things to consider that I have not thought about
 // - who should be in sudoers file?  maybe those in a group passed in the the user data?

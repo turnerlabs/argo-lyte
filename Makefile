@@ -68,7 +68,7 @@ endif
 ifndef BUMP_VERSION
 	go get -u github.com/Shyp/bump_version
 endif
-	bump_version minor main.go
+	bump_version patch main.go
 	git push origin --tags
 	mkdir -p releases/$(version)
 	# Change the binary names below to match your tool name
@@ -80,8 +80,8 @@ ifndef RELEASE
 endif
 	# Change the Github username to match your username.
 	# These commands are not idempotent, so ignore failures if an upload repeats
-	github-release release --user smithatlanta --repo argo-lyte --tag $(version) || true
-	github-release upload --user smithatlanta --repo argo-lyte --tag $(version) --name argo-lyte-linux-amd64 --file releases/$(version)/argo-lyte-linux-amd64 || true
-	github-release upload --user smithatlanta --repo argo-lyte --tag $(version) --name argo-lyte-linux-amd64 --file releases/$(version)/argo-lyte-linux-amd64 || true
-	github-release upload --user smithatlanta --repo argo-lyte --tag $(version) --name argo-lyte-darwin-amd64 --file releases/$(version)/argo-lyte-darwin-amd64 || true
-	github-release upload --user smithatlanta --repo argo-lyte --tag $(version) --name argo-lyte-windows-amd64 --file releases/$(version)/argo-lyte-windows-amd64 || true
+	github-release release --user turnercode --repo argo-lyte --tag $(version) || true
+	github-release upload --user turnercode --repo argo-lyte --tag $(version) --name argo-lyte-linux-amd64 --file releases/$(version)/argo-lyte-linux-amd64 || true
+	github-release upload --user turnercode --repo argo-lyte --tag $(version) --name argo-lyte-linux-amd64 --file releases/$(version)/argo-lyte-linux-amd64 || true
+	github-release upload --user turnercode --repo argo-lyte --tag $(version) --name argo-lyte-darwin-amd64 --file releases/$(version)/argo-lyte-darwin-amd64 || true
+	github-release upload --user turnercode --repo argo-lyte --tag $(version) --name argo-lyte-windows-amd64 --file releases/$(version)/argo-lyte-windows-amd64 || true
