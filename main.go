@@ -21,8 +21,13 @@ import (
 // VERSION - version
 const VERSION = "0.0.2"
 
-// Things to consider that I have not thought about
-// - who should be in sudoers file?  maybe those in a group passed in the the user data?
+///////////////////////////  What does this do? ///////////////////////////
+
+// Things still to resolve
+// - who should be in sudoers file?  maybe pass those in a group passed in the the user data?
+// - dealing with multiple keys
+// - dealing with users changing keys
+// - write a test around each function
 
 // Read thru groups directory and create new groups.
 //  1. Read in json group file.
@@ -33,12 +38,17 @@ const VERSION = "0.0.2"
 // Read thru users directory and create new users.
 //  1. Read in json user file.
 //  2. Exec out and create the user via useradd with the correct shell and groups
-//	3. Write out each user to leveldb so the next time the code is run, it can determine what has changed
-//	4. Create the .ssh directory in the users directory with the correct permissions
-//	5. Create the authorized_key file in the ssh directory
+//	3. Write out each user and their groups to leveldb so the next time the code is run, it can determine what has changed
+//	4. Write out each user and their keys to leveldb so the next time the code is run, it can determine what has changed
+//	5. Create the .ssh directory in the users directory with the correct permissions
+//	6. Create the authorized_key file in the ssh directory
+
+// Read thru user files and compare the users to the users in leveldb to see if a new user was added or removed
+//	- and check and see if users groups have changed
 
 // Read thru group files and compare the groups to the groups in leveldb to see if a new group was added or removed
-// Read thru user files and compare the users to the users in leveldb to see if a new user was added or removed
+
+///////////////////////////////////////////////////////////////////////////
 
 // Generic check function to avoid repeatedly checking for errors and panic after logging error
 func check(e error) {
