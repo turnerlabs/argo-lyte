@@ -17,8 +17,3 @@ func TestGetUIDByUserName(t *testing.T) {
 	result := getUIDByUserName("_timezone")
 	assert.Equal(t, result, 210)
 }
-
-func TestGetUserFile(t *testing.T) {
-	err := getUserFile(getWorkingDirectory())
-	assert.Equal(t, err, nil)
-}
