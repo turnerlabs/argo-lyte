@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -87,12 +87,7 @@ func getUIDByUserName(userName string) int {
 }
 
 // Pipe the output of the curl into tar to create the 2 folders(users/groups)
-func getUserGroupFile(workDir string) {
-	userURL := os.Getenv("USER_URL")
-	if userURL == "" {
-		check(errors.New("No User URL passed in"))
-	}
-
+func getUserGroupFile(workDir string, userURL string) {
 	fmt.Printf("Getting user group url and uncompressing it: %s\n", userURL)
 
 	cmd1 := exec.Command("curl", "-s", userURL)
@@ -119,21 +114,13 @@ func getUserGroupFile(workDir string) {
 	check(err)
 }
 
-// Get the WORK_DIR environment variable and create the directory if it doesn't exist
-func getWorkingDirectory() string {
-	workDir := os.Getenv("WORK_DIR")
-	if workDir == "" {
-		fmt.Println("WORK_DIR environment variable not set, using /tmp/eau-work")
-		workDir = "/tmp/eau-work"
-	}
-
+// Create the working directory if it doesn't exist
+func createWorkingDirectory(workDir string) {
 	// if it doesn't exist create it
 	if _, err := os.Stat(workDir); os.IsNotExist(err) {
 		checkWithoutPanic(err)
 		os.Mkdir(workDir, 0700)
 	}
-
-	return workDir
 }
 
 // Pull the group information from the json file into the ArgoGroup struct
@@ -311,37 +298,25 @@ func contains(s []string, e string) bool {
 // Pass in -d to remove all users and groups
 // Pass in -t to use local files(don't get or remove the gzip'd file)
 func main() {
-	del := false
-	test := false
+	dbLocationPtr := flag.String("dblocation", "/tmp/db", "leveldb location")
+	workDirectoryPtr := flag.String("workdirectory", "/tmp/eau-work", "temporary working location")
+	userURLPtr := flag.String("userurl", "http://localhost/test.tgz", "user url")
+	deletePtr := flag.Bool("delete", false, "delete everything")
+	testPtr := flag.Bool("test", false, "run without database")
 
-	if len(os.Args) > 1 {
-		if os.Args[1] == "-d" {
-			del = true
-		}
-		if os.Args[1] == "-t" {
-			test = true
-		}
-		if os.Args[1] == "-dt" {
-			test = true
-			del = true
-		}
-		if os.Args[1] == "-td" {
-			test = true
-			del = true
-		}
-	}
+	flag.Parse()
 
-	workDir := getWorkingDirectory()
+	createWorkingDirectory(*workDirectoryPtr)
 
 	// use level db to track users. needed for deletion.
-	db, err := leveldb.OpenFile("/tmp/db", nil)
+	db, err := leveldb.OpenFile(*dbLocationPtr, nil)
 	check(err)
 
 	defer db.Close()
 
-	if !test {
+	if *testPtr == false {
 		// pull down the user group file and uncompress it into the work directory
-		getUserGroupFile(workDir)
+		getUserGroupFile(*workDirectoryPtr, *userURLPtr)
 	}
 
 	// map for users to groups and leveldb comparisons
@@ -351,7 +326,7 @@ func main() {
 
 	// Loop through the groups directory creating groups
 	// and build the above map to eventually add the users to the appropriate groups
-	groupsDir := workDir + "/groups"
+	groupsDir := *workDirectoryPtr + "/groups"
 	fmt.Printf("Reading directory: %s\n", groupsDir)
 	files, _ := ioutil.ReadDir(groupsDir)
 	keyPrefix := "group@"
@@ -370,7 +345,7 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if del {
+		if *deletePtr == false {
 			if data == nil {
 				os.Exit(0)
 			}
@@ -407,7 +382,7 @@ func main() {
 	// Loop through the users directory creating users,
 	// add the users to the appropriate groups,
 	// create the .ssh directory and authorized_key file
-	usersDir := workDir + "/users"
+	usersDir := *workDirectoryPtr + "/users"
 	fmt.Printf("Reading directory: %s\n", usersDir)
 	files, _ = ioutil.ReadDir(usersDir)
 	keyPrefix = "user@"
@@ -427,7 +402,7 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if del {
+		if *deletePtr == false {
 			err = db.Delete([]byte(key), nil)
 			check(err)
 			userDelete(user.ID)
@@ -546,9 +521,9 @@ func main() {
 	iter.Release()
 	err = iter.Error()
 
-	if !test {
+	if *testPtr == false {
 		// Remove working directory from possible prying eyes
-		err = os.RemoveAll(workDir)
+		err = os.RemoveAll(*workDirectoryPtr)
 		check(err)
 	}
 }
