@@ -1,0 +1,25 @@
+{
+    "variables": {
+        "WORK_DIR": "{{env `/tmp/eau-work`}}",
+        "USER_URL": "{{env ` http://assets.services.ec2.dmtio.net/user/user.tgz`}}",
+        "hostname": "packer-test"
+    },
+    "builders": [{
+        "type": "virtualbox-iso",
+        "guest_os_type": "Ubuntu_64",
+        "iso_checksum": "2bce60d18248df9980612619ff0b34e6",
+        "iso_checksum_type": "md5",
+        "iso_url": "http://mirrors.us.kernel.org/ubuntu-releases/16.04/ubuntu-16.04.2-server-amd64.iso",
+        "ssh_username": "packer",
+        "ssh_password": "packer",
+        "shutdown_command": "echo 'packer' | sudo -S shutdown -P now"
+    }],
+    "post-processors": null,
+    "provisioners": [{
+        "inline": [
+            "wget https://github.com/turnercode/argo-lyte/releases/download/0.0.2/argo-lyte-linux-amd64",
+            "echo 'packer' | sudo argo-lyte-linux-amd64"
+        ],
+        "type": "shell"
+    }]
+}
