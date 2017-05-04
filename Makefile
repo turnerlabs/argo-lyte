@@ -82,6 +82,5 @@ endif
 	# These commands are not idempotent, so ignore failures if an upload repeats
 	github-release release --user turnerlabs --repo argo-lyte --tag $(version) || true
 	github-release upload --user turnerlabs --repo argo-lyte --tag $(version) --name argo-lyte-linux-amd64 --file releases/$(version)/argo-lyte-linux-amd64 || true
-	github-release upload --user turnerlabs --repo argo-lyte --tag $(version) --name argo-lyte-linux-amd64 --file releases/$(version)/argo-lyte-linux-amd64 || true
 	github-release upload --user turnerlabs --repo argo-lyte --tag $(version) --name argo-lyte-darwin-amd64 --file releases/$(version)/argo-lyte-darwin-amd64 || true
 	github-release upload --user turnerlabs --repo argo-lyte --tag $(version) --name argo-lyte-windows-amd64 --file releases/$(version)/argo-lyte-windows-amd64 || true

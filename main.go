@@ -19,7 +19,7 @@ import (
 )
 
 // VERSION - version
-const VERSION = "0.0.6"
+const VERSION = "0.0.3"
 
 ///////////////////////////  What does this do? ///////////////////////////
 
