@@ -295,8 +295,6 @@ func contains(s []string, e string) bool {
 /////////////////////////////////////////////////////////////
 
 // Main
-// Pass in -d to remove all users and groups
-// Pass in -t to use local files(don't get or remove the gzip'd file)
 func main() {
 	dbLocationPtr := flag.String("dblocation", "/tmp/db", "leveldb location")
 	workDirectoryPtr := flag.String("workdirectory", "/tmp/eau-work", "temporary working location")
@@ -345,7 +343,7 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if *deletePtr == false {
+		if *deletePtr == true {
 			if data == nil {
 				os.Exit(0)
 			}
@@ -402,7 +400,7 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if *deletePtr == false {
+		if *deletePtr == true {
 			err = db.Delete([]byte(key), nil)
 			check(err)
 			userDelete(user.ID)
