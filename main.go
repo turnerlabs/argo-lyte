@@ -65,6 +65,7 @@ func checkWithoutPanic(e error) {
 	}
 }
 
+// Tested
 // Get the groupid by the group name
 func getGIDByGroupName(groupName string) int {
 	group, err := user.LookupGroup(groupName)
@@ -76,6 +77,7 @@ func getGIDByGroupName(groupName string) int {
 	return groupID
 }
 
+// Tested
 // Get the userid by the user name
 func getUIDByUserName(userName string) int {
 	user, err := user.Lookup(userName)
@@ -86,6 +88,7 @@ func getUIDByUserName(userName string) int {
 	return userID
 }
 
+// Not testable
 // Pipe the output of the curl into tar to create the 2 folders(users/groups)
 func getUserGroupFile(workDir string, userURL string) {
 	fmt.Printf("Getting user group url and uncompressing it: %s\n", userURL)
@@ -114,12 +117,23 @@ func getUserGroupFile(workDir string, userURL string) {
 	check(err)
 }
 
+// Tested
 // Create the working directory if it doesn't exist
 func createWorkingDirectory(workDir string) {
 	// if it doesn't exist create it
 	if _, err := os.Stat(workDir); os.IsNotExist(err) {
 		checkWithoutPanic(err)
 		os.Mkdir(workDir, 0700)
+	}
+}
+
+// Tested
+// Delete the working directory if it doesn't exist
+func deleteWorkingDirectory(workDir string) {
+	// if it doesn't exist create it
+	if _, err := os.Stat(workDir); os.IsNotExist(err) {
+		checkWithoutPanic(err)
+		os.Remove(workDir)
 	}
 }
 
@@ -263,19 +277,19 @@ func userDelete(userName string) {
 	check(err)
 }
 
-// helper function to deal with conversion of string arrays to byte arrays
-func stringArrayToByteArray(sArray []string) []byte {
+// helper function to deal with byte array conversion
+func userGroupToByteArray(userGroup UserGroup) []byte {
 	bufferIn := &bytes.Buffer{}
-	gob.NewEncoder(bufferIn).Encode(sArray)
+	gob.NewEncoder(bufferIn).Encode(userGroup)
 	return []byte(bufferIn.Bytes())
 }
 
-// helper function to deal with conversion of byte arrays to string arrays
-func byteArrayToStringArray(bArray []byte) []string {
+// helper function to deal with byte array conversion
+func byteArrayToUserGroup(bArray []byte) *UserGroup {
 	buffer := bytes.NewBuffer(bArray)
-	backToStringSlice := []string{}
-	gob.NewDecoder(buffer).Decode(&backToStringSlice)
-	return backToStringSlice
+	userGroup := new(UserGroup)
+	gob.NewDecoder(buffer).Decode(&userGroup)
+	return userGroup
 }
 
 // helper function to pull user out of leveldb key
@@ -411,11 +425,12 @@ func main() {
 			if data == nil {
 				fmt.Printf("Creating new user in leveldb with key: %s\n", key)
 				newUser = true
-				bArray := stringArrayToByteArray(mUserGroups[user.ID])
+				userGroup := UserGroup{Groups: mUserGroups[user.ID], SSHKeys: user.SSHkeys, ID: user.ID, Shell: user.Shell}
+				bArray := userGroupToByteArray(userGroup)
 				err = db.Put([]byte(key), bArray, nil)
 				check(err)
 			} else {
-				fmt.Printf("User %s with groups: %v in leveldb with key: %s already exists.\n", user.ID, byteArrayToStringArray(data), key)
+				fmt.Printf("User %s with groups: %v in leveldb with key: %s already exists.\n", user.ID, byteArrayToUserGroup(data).Groups, key)
 			}
 
 			if newUser {
@@ -457,7 +472,7 @@ func main() {
 			userDelete(parseUserKey(string(iter.Key())))
 		} else {
 			// check the iterators value against the maps value
-			existingGroups := byteArrayToStringArray(iter.Value())
+			existingGroups := byteArrayToUserGroup(iter.Value()).Groups
 			newGroups := mUserGroups[parseUserKey(string(iter.Key()))]
 
 			// check for groups to remove
@@ -487,7 +502,9 @@ func main() {
 
 				newGroups = append(newGroups, groupsToAdd...)
 
-				bArray := stringArrayToByteArray(newGroups)
+				userGroup := byteArrayToUserGroup(iter.Value())
+				userGroup.Groups = newGroups
+				bArray := userGroupToByteArray(*userGroup)
 				err = db.Put(iter.Key(), bArray, nil)
 				check(err)
 			}
@@ -499,7 +516,10 @@ func main() {
 						newGroups = append(newGroups, existingGroup)
 					}
 				}
-				bArray := stringArrayToByteArray(newGroups)
+				userGroup := byteArrayToUserGroup(iter.Value())
+				userGroup.Groups = newGroups
+				bArray := userGroupToByteArray(*userGroup)
+
 				err = db.Put(iter.Key(), bArray, nil)
 				check(err)
 			}

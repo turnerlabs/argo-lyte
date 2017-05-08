@@ -13,3 +13,11 @@ type ArgoUser struct {
 	ID      string   `json:"id"`
 	Shell   string   `json:"shell"`
 }
+
+// UserGroup -
+type UserGroup struct {
+	Groups  []string
+	SSHKeys []string
+	ID      string
+	Shell   string
+}
