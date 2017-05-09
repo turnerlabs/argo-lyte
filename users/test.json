@@ -1,0 +1,5 @@
+{
+    "id":"test",
+    "shell":"/bin/bash",
+    "ssh_keys":["ssh_key1", "ssh_key2"]
+}

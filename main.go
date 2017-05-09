@@ -137,6 +137,7 @@ func deleteWorkingDirectory(workDir string) {
 	}
 }
 
+// Tested
 // Pull the group information from the json file into the ArgoGroup struct
 func getGroupFromFile(file os.FileInfo, groupsDir string) ArgoGroup {
 	// Read the json file and marshall it into a struct
@@ -152,6 +153,7 @@ func getGroupFromFile(file os.FileInfo, groupsDir string) ArgoGroup {
 	return group
 }
 
+//Tested
 // Pull the user information from the json file into a ArgoUser struct
 func getUserFromFile(file os.FileInfo, usersDir string) ArgoUser {
 	// Read the json file and marshall it into a struct
@@ -277,6 +279,7 @@ func userDelete(userName string) {
 	check(err)
 }
 
+// Tested
 // helper function to deal with byte array conversion
 func userGroupToByteArray(userGroup UserGroup) []byte {
 	bufferIn := &bytes.Buffer{}
@@ -284,6 +287,7 @@ func userGroupToByteArray(userGroup UserGroup) []byte {
 	return []byte(bufferIn.Bytes())
 }
 
+// Tested
 // helper function to deal with byte array conversion
 func byteArrayToUserGroup(bArray []byte) *UserGroup {
 	buffer := bytes.NewBuffer(bArray)
@@ -292,12 +296,14 @@ func byteArrayToUserGroup(bArray []byte) *UserGroup {
 	return userGroup
 }
 
+// Tested
 // helper function to pull user out of leveldb key
 func parseUserKey(fullKey string) string {
 	splitKey := strings.Split(fullKey, "@")
 	return splitKey[1]
 }
 
+// Tested
 // simple array contains
 func contains(s []string, e string) bool {
 	for _, a := range s {

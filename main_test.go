@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -47,4 +48,40 @@ func TestDeleteWorkingDirectory(t *testing.T) {
 	deleteWorkingDirectory(workDir)
 	_, err := os.Stat(workDir)
 	assert.Nil(t, err)
+}
+
+// Test get group from file
+func TestGetGroup(t *testing.T) {
+	groupsDir := "./groups"
+	files, _ := ioutil.ReadDir(groupsDir)
+	result := getGroupFromFile(files[0], groupsDir)
+	assert.Equal(t, result.ID, "test")
+}
+
+// Test get user from file
+func TestGetUser(t *testing.T) {
+	usersDir := "./users"
+	files, _ := ioutil.ReadDir(usersDir)
+	result := getGroupFromFile(files[0], usersDir)
+	assert.Equal(t, result.ID, "test")
+}
+
+// Test contains function
+func TestDoesContain(t *testing.T) {
+	test := []string{"hello", "world"}
+	result := contains(test, "world")
+	assert.Equal(t, result, true)
+}
+
+func TestDoesNotContain(t *testing.T) {
+	test := []string{"hello", "world"}
+	result := contains(test, "zoo")
+	assert.Equal(t, result, false)
+}
+
+// Test parse user key
+func TestParseUserKey(t *testing.T) {
+	test := "user@12345"
+	result := parseUserKey(test)
+	assert.Equal(t, result, "12345")
 }

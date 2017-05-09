@@ -1,0 +1,5 @@
+{
+    "id":"test",
+    "users":["user1", "user2"],
+    "admins":["admin1", "admin2s"]
+}
