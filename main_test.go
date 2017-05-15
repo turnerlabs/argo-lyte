@@ -83,3 +83,15 @@ func TestParseUserKey(t *testing.T) {
 	result := parseUserKey(test)
 	assert.Equal(t, result, "12345")
 }
+
+// Test Add Group functionality
+func TestAddGroup(t *testing.T) {
+	test := "justatestgroup"
+	groupAdd(test)
+}
+
+// Test Delete Group functionality
+func TestDeleteGroup(t *testing.T) {
+	test := "justatestgroup"
+	groupDelete(test)
+}

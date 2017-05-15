@@ -192,6 +192,7 @@ func createAuthorizedKeyFile(user ArgoUser, sshDir string) {
 	check(err)
 }
 
+//Tested
 // Add the group via the exec command
 func groupAdd(groupName string) {
 	var cmd *exec.Cmd
@@ -205,6 +206,7 @@ func groupAdd(groupName string) {
 	check(err)
 }
 
+//Tested
 // Delete the group via the exec command
 func groupDelete(groupName string) {
 	var cmd *exec.Cmd
