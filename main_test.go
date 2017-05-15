@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetGIDByGroupName(t *testing.T) {
-	result := getGIDByGroupName("wheel")
+	result := getGIDByGroupName("root")
 	assert.Equal(t, result, 0)
 }
 
