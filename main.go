@@ -339,29 +339,51 @@ func contains(s []string, e string) bool {
 }
 
 /////////////////////////////////////////////////////////////
+var dbLocation string
+var workDirectory string
+var userURL string
+var sudoGroups string
+var delete bool
+var test bool
+
+func init() {
+	flag.StringVar(&dbLocation, "dblocation", "/tmp/db", "leveldb location")
+	flag.StringVar(&workDirectory, "workdirectory", "/tmp/eau-work", "temporary working location")
+	flag.StringVar(&userURL, "userurl", "", "argo url to tarred and gzipd user / groups files.")
+	flag.StringVar(&sudoGroups, "sudogroups", "", "groups to add as sudo. ex. group1, group2")
+	flag.BoolVar(&delete, "delete", false, "delete everything")
+	flag.BoolVar(&test, "test", false, "run without usimg local database")
+}
 
 // Main
 func main() {
-	dbLocationPtr := flag.String("dblocation", "/tmp/db", "leveldb location")
-	workDirectoryPtr := flag.String("workdirectory", "/tmp/eau-work", "temporary working location")
-	userURLPtr := flag.String("userurl", "http://localhost/test.tgz", "argo url to tarred and gzipd user / groups files.")
-	sudoGroupsPtr := flag.String("sudogroups", "", "groups to add as sudo. ex. group1, group2")
-	deletePtr := flag.Bool("delete", false, "delete everything")
-	testPtr := flag.Bool("test", false, "run without usimg local database")
-
 	flag.Parse()
+	if len(os.Args) == 1 {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 
-	createWorkingDirectory(*workDirectoryPtr)
+	if os.Args[1] == "help" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	if userURL == "" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	createWorkingDirectory(workDirectory)
 
 	// use level db to track users. needed for deletion.
-	db, err := leveldb.OpenFile(*dbLocationPtr, nil)
+	db, err := leveldb.OpenFile(dbLocation, nil)
 	check(err)
 
 	defer db.Close()
 
-	if *testPtr == false {
+	if test == false {
 		// pull down the user group file and uncompress it into the work directory
-		getUserGroupFile(*workDirectoryPtr, *userURLPtr)
+		getUserGroupFile(workDirectory, userURL)
 	}
 
 	// map for users to groups and leveldb comparisons
@@ -371,7 +393,7 @@ func main() {
 
 	// Loop through the groups directory creating groups
 	// and build the above map to eventually add the users to the appropriate groups
-	groupsDir := *workDirectoryPtr + "/groups"
+	groupsDir := workDirectory + "/groups"
 	fmt.Printf("Reading directory: %s\n", groupsDir)
 	files, _ := ioutil.ReadDir(groupsDir)
 	keyPrefix := "group@"
@@ -390,7 +412,7 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if *deletePtr == true {
+		if delete == true {
 			if data == nil {
 				os.Exit(0)
 			}
@@ -427,7 +449,7 @@ func main() {
 	// Loop through the users directory creating users,
 	// add the users to the appropriate groups,
 	// create the .ssh directory and authorized_key file
-	usersDir := *workDirectoryPtr + "/users"
+	usersDir := workDirectory + "/users"
 	fmt.Printf("Reading directory: %s\n", usersDir)
 	files, _ = ioutil.ReadDir(usersDir)
 	keyPrefix = "user@"
@@ -447,7 +469,7 @@ func main() {
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
-		if *deletePtr == true {
+		if delete == true {
 			err = db.Delete([]byte(key), nil)
 			check(err)
 			userDelete(user.ID)
@@ -574,18 +596,18 @@ func main() {
 	iter.Release()
 	err = iter.Error()
 
-	if len(*sudoGroupsPtr) > 0 {
+	if len(sudoGroups) > 0 {
 		deleteSudoersFiles()
-		if *deletePtr == false {
-			splitSudoGrps := strings.Split(*sudoGroupsPtr, ",")
+		if delete == false {
+			splitSudoGrps := strings.Split(sudoGroups, ",")
 			for _, sudoGrp := range splitSudoGrps {
 				addGroupToSudoers(sudoGrp)
 			}
 		}
 	}
-	if *testPtr == false {
+	if test == false {
 		// Remove working directory from possible prying eyes
-		err = os.RemoveAll(*workDirectoryPtr)
+		err = os.RemoveAll(workDirectory)
 		check(err)
 	}
 }

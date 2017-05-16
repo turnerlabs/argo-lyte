@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// These are fairly high level happy path tests.  I need to write negative tests.
+
 func TestGetGIDByGroupName(t *testing.T) {
 	result := getGIDByGroupName("root")
 	assert.Equal(t, result, 0)
