@@ -358,16 +358,19 @@ func init() {
 // Main
 func main() {
 	flag.Parse()
+	// no args
 	if len(os.Args) == 1 {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
+	// arg of help
 	if os.Args[1] == "help" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
+	// required item
 	if userURL == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
