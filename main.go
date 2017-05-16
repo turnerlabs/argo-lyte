@@ -576,9 +576,11 @@ func main() {
 
 	if len(*sudoGroupsPtr) > 0 {
 		deleteSudoersFiles()
-		splitSudoGrps := strings.Split(*sudoGroupsPtr, ",")
-		for _, sudoGrp := range splitSudoGrps {
-			addGroupToSudoers(sudoGrp)
+		if *deletePtr == false {
+			splitSudoGrps := strings.Split(*sudoGroupsPtr, ",")
+			for _, sudoGrp := range splitSudoGrps {
+				addGroupToSudoers(sudoGrp)
+			}
 		}
 	}
 	if *testPtr == false {
