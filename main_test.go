@@ -84,14 +84,48 @@ func TestParseUserKey(t *testing.T) {
 	assert.Equal(t, result, "12345")
 }
 
-// Test Add Group functionality
+// Must run as sudo
+
+// Test Add Group
 func TestAddGroup(t *testing.T) {
 	test := "justatestgroup"
 	groupAdd(test)
 }
 
-// Test Delete Group functionality
+func TestAddGroup2(t *testing.T) {
+	test := "justatestgroup2"
+	groupAdd(test)
+}
+
+// Test Add User
+func TestAddUser(t *testing.T) {
+	user := ArgoUser{[]string{"testkey"}, "justauserid", "/bin/bash"}
+	userAdd(user, []string{"justatestgroup"})
+}
+
+// Test Add User to Group
+func TestAddUserToGroup(t *testing.T) {
+	addGroupToUser("justauserid", "justatestgroup2")
+}
+
+// Test Remove User from Group
+func TestRemoveUserToGroup(t *testing.T) {
+	removeGroupFromUser("justauserid", "justatestgroup2")
+}
+
+// Test Delete User
+func TestDeleteUser(t *testing.T) {
+	userDelete("justauserid")
+}
+
+// Test Delete Group
 func TestDeleteGroup(t *testing.T) {
 	test := "justatestgroup"
+	groupDelete(test)
+}
+
+// Test Delete Group
+func TestDeleteGroup2(t *testing.T) {
+	test := "justatestgroup2"
 	groupDelete(test)
 }

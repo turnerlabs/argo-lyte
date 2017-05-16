@@ -234,8 +234,8 @@ func addGroupToUser(user string, group string) {
 	check(err)
 }
 
-// Delete a group from a user
-func deleteGroupFromUser(user string, group string) {
+// Remove a group from a user
+func removeGroupFromUser(user string, group string) {
 	var cmd *exec.Cmd
 	fmt.Printf("Deleting group: %s from user: %s\n", user, group)
 
@@ -490,7 +490,7 @@ func main() {
 				if !groupExists {
 					fmt.Printf("Group %s is being removed from %s.\n", existingGroup, parseUserKey(string(iter.Key())))
 					groupsToRemove = append(groupsToRemove, existingGroup)
-					deleteGroupFromUser(parseUserKey(string(iter.Key())), existingGroup)
+					removeGroupFromUser(parseUserKey(string(iter.Key())), existingGroup)
 				}
 			}
 			// check for new group
