@@ -287,12 +287,18 @@ func addGroupToSudoers(group string) {
 //Tested
 // Delete the sudoers file for the test
 func deleteSudoersFiles() {
-	sudoersFile := "/etc/sudoers.d/argo-*"
+	sudoersDir := "/etc/sudoers.d"
+	fmt.Printf("Reading directory: %s\n", sudoersDir)
+	files, _ := ioutil.ReadDir(sudoersDir)
+	for _, file := range files {
+		if !strings.Contains(file.Name(), "argo") {
+			continue
+		}
+		fmt.Printf("Deleting sudoers file in: %s\n", file.Name())
 
-	fmt.Printf("Deleting sudoers file in: %s\n", sudoersFile)
-
-	err := os.Remove(sudoersFile)
-	check(err)
+		// err := os.Remove(file.Name())
+		// check(err)
+	}
 }
 
 // Tested
