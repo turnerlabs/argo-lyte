@@ -291,7 +291,7 @@ func deleteSudoersFiles() {
 
 	fmt.Printf("Deleting sudoers file in: %s\n", sudoersFile)
 
-	err := os.RemoveAll(sudoersFile)
+	err := os.Remove(sudoersFile)
 	check(err)
 }
 
