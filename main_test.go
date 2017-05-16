@@ -108,6 +108,18 @@ func TestAddUserToGroup(t *testing.T) {
 	addGroupToUser("justauserid", "justatestgroup2")
 }
 
+// Test Add Authorization Key
+func TestAddAuthorizedKey(t *testing.T) {
+	user := ArgoUser{[]string{"testkey"}, "justauserid", "/bin/bash"}
+	createAuthorizedKeyFile(user, "/home/justauserid")
+}
+
+// Test Delete Authorization Key
+func TestDeleteAuthorizedKey(t *testing.T) {
+	user := ArgoUser{[]string{"testkey"}, "justauserid", "/bin/bash"}
+	deleteAuthorizedKeyFile(user, "/home/justauserid")
+}
+
 // Test Remove User from Group
 func TestRemoveUserToGroup(t *testing.T) {
 	removeGroupFromUser("justauserid", "justatestgroup2")
