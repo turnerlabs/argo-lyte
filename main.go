@@ -284,6 +284,17 @@ func addGroupToSudoers(group string) {
 	check(err)
 }
 
+//Tested
+// Delete the sudoers file
+func deleteSudoersFile() {
+	sudoersFile := "/etc/sudoers.d/argo-users"
+
+	fmt.Printf("Deleting sudoers file: %s\n", sudoersFile)
+
+	err := os.Remove(sudoersFile)
+	check(err)
+}
+
 // Tested
 // helper function to deal with byte array conversion
 func userGroupToByteArray(userGroup UserGroup) []byte {

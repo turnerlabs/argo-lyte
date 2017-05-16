@@ -114,10 +114,16 @@ func TestAddAuthorizedKey(t *testing.T) {
 	createAuthorizedKeyFile(user, "/home/justauserid")
 }
 
-// Test add group to /etc/sudoers to allow sudo
+// Test add group to /etc/sudoers.d to allow sudo
 
 func TestAddGroupToSudoers(t *testing.T) {
 	addGroupToSudoers("justatestgroup")
+}
+
+// Test delete /etc/sudoers.d/argo-users
+
+func TestDeleteSudoersFile(t *testing.T) {
+	deleteSudoersFile()
 }
 
 // Test Delete Authorization Key
