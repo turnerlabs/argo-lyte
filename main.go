@@ -275,7 +275,7 @@ func userDelete(userName string) {
 func addGroupToSudoers(group string) {
 	fileText := "%" + group + " ALL=(ALL) ALL\n"
 
-	sudoersFile := "/etc/sudoers.d/argo-users"
+	sudoersFile := "/etc/sudoers.d/argo-" + group
 
 	fmt.Printf("Creating sudoers file: %s\n", sudoersFile)
 
@@ -285,13 +285,13 @@ func addGroupToSudoers(group string) {
 }
 
 //Tested
-// Delete the sudoers file
-func deleteSudoersFile() {
-	sudoersFile := "/etc/sudoers.d/argo-users"
+// Delete the sudoers file for the test
+func deleteSudoersFiles() {
+	sudoersFile := "/etc/sudoers.d/argo-*"
 
-	fmt.Printf("Deleting sudoers file: %s\n", sudoersFile)
+	fmt.Printf("Deleting sudoers file in: %s\n", sudoersFile)
 
-	err := os.Remove(sudoersFile)
+	err := os.RemoveAll(sudoersFile)
 	check(err)
 }
 
@@ -336,9 +336,10 @@ func contains(s []string, e string) bool {
 func main() {
 	dbLocationPtr := flag.String("dblocation", "/tmp/db", "leveldb location")
 	workDirectoryPtr := flag.String("workdirectory", "/tmp/eau-work", "temporary working location")
-	userURLPtr := flag.String("userurl", "http://localhost/test.tgz", "user url")
+	userURLPtr := flag.String("userurl", "http://localhost/test.tgz", "argo url to tarred and gzipd user / groups files.")
+	sudoGroupsPtr := flag.String("sudogroups", "", "groups to add as sudo. ex. group1, group2")
 	deletePtr := flag.Bool("delete", false, "delete everything")
-	testPtr := flag.Bool("test", false, "run without database")
+	testPtr := flag.Bool("test", false, "run without usimg local database")
 
 	flag.Parse()
 
@@ -565,6 +566,13 @@ func main() {
 	iter.Release()
 	err = iter.Error()
 
+	if len(*sudoGroupsPtr) > 0 {
+		deleteSudoersFiles()
+		splitSudoGrps := strings.Split(*sudoGroupsPtr, ",")
+		for _, sudoGrp := range splitSudoGrps {
+			addGroupToSudoers(sudoGrp)
+		}
+	}
 	if *testPtr == false {
 		// Remove working directory from possible prying eyes
 		err = os.RemoveAll(*workDirectoryPtr)

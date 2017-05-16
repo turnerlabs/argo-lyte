@@ -123,7 +123,7 @@ func TestAddGroupToSudoers(t *testing.T) {
 // Test delete /etc/sudoers.d/argo-users
 
 func TestDeleteSudoersFile(t *testing.T) {
-	deleteSudoersFile()
+	deleteSudoersFiles()
 }
 
 // Test Delete Authorization Key
