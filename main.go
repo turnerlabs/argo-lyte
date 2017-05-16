@@ -296,8 +296,10 @@ func deleteSudoersFiles() {
 		}
 		fmt.Printf("Deleting sudoers file in: %s\n", file.Name())
 
-		// err := os.Remove(file.Name())
-		// check(err)
+		fullPath := sudoersDir + "/" + file.Name()
+
+		err := os.Remove(fullPath)
+		check(err)
 	}
 }
 
