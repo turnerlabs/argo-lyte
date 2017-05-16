@@ -18,37 +18,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+//////// All tests were run on a vagrant ubuntu 14.04 image; other os's will be supported in the future ///////////
+
 // VERSION - version
 const VERSION = "0.0.3"
-
-///////////////////////////  What does this do? ///////////////////////////
-
-// Things still to resolve
-// - who should be in sudoers file?  maybe pass those in a group passed in the the user data?
-// - dealing with multiple keys
-// - dealing with users changing keys
-// - write a test around each function
-
-// Read thru groups directory and create new groups.
-//  1. Read in json group file.
-//  2. Exec out and create group via groupadd.
-//  3. As you create the group, loop thru the users in the json file and create a map containing the user as the key and the groups as the value
-//	4. Write out each group to leveldb so the next time the code is run, it can determine what has changed
-
-// Read thru users directory and create new users.
-//  1. Read in json user file.
-//  2. Exec out and create the user via useradd with the correct shell and groups
-//	3. Write out each user and their groups to leveldb so the next time the code is run, it can determine what has changed
-//	4. Write out each user and their keys to leveldb so the next time the code is run, it can determine what has changed
-//	5. Create the .ssh directory in the users directory with the correct permissions
-//	6. Create the authorized_key file in the ssh directory
-
-// Read thru user files and compare the users to the users in leveldb to see if a new user was added or removed
-//	- and check and see if users groups have changed
-
-// Read thru group files and compare the groups to the groups in leveldb to see if a new group was added or removed
-
-///////////////////////////////////////////////////////////////////////////
 
 // Generic check function to avoid repeatedly checking for errors and panic after logging error
 func check(e error) {
@@ -294,6 +267,20 @@ func userDelete(userName string) {
 	check(err)
 
 	err = cmd.Wait()
+	check(err)
+}
+
+//Tested
+// add a group to the sudoers.d directory to allow group access to sudo
+func addGroupToSudoers(group string) {
+	fileText := "%" + group + " ALL=(ALL) ALL\n"
+
+	sudoersFile := "/etc/sudoers.d/argo-users"
+
+	fmt.Printf("Creating sudoers file: %s\n", sudoersFile)
+
+	d1 := []byte(fileText)
+	err := ioutil.WriteFile(sudoersFile, d1, 0600)
 	check(err)
 }
 

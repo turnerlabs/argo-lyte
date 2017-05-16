@@ -114,6 +114,12 @@ func TestAddAuthorizedKey(t *testing.T) {
 	createAuthorizedKeyFile(user, "/home/justauserid")
 }
 
+// Test add group to /etc/sudoers to allow sudo
+
+func TestAddGroupToSudoers(t *testing.T) {
+	addGroupToSudoers("justatestgroup")
+}
+
 // Test Delete Authorization Key
 func TestDeleteAuthorizedKey(t *testing.T) {
 	user := ArgoUser{[]string{"testkey"}, "justauserid", "/bin/bash"}
