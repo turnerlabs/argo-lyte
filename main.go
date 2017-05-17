@@ -623,9 +623,6 @@ func main() {
 				}
 			}
 
-			// Adjust the groups
-			updatedGroups := adjustSlice(groupsToAdd, groupsToRemove, existingDBGroups)
-
 			// User SSH functionality
 
 			// Convert existing ssh keys in leveldb to the existing SSHKeys
@@ -657,28 +654,36 @@ func main() {
 				}
 			}
 
-			// Adjust the groups
-			updatedSSHKeys := adjustSlice(sshKeysToAdd, sshKeysToRemove, existingSSHKeys)
-
-			// Update the authorized Keys
-			updateAuthorizedKeyFile(parseUserKey(string(iter.Key())), updatedSSHKeys)
-
 			// Update LevelDB
 
-			// convert the current groups from a byte array to a UserGroup Struct
-			userGroup := byteArrayToUserGroup(iter.Value())
+			if len(sshKeysToAdd) > 0 || len(sshKeysToRemove) > 0 || len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
 
-			// set the current groups and keys to the newly modified items
-			userGroup.Groups = updatedGroups
-			userGroup.SSHKeys = updatedSSHKeys
+				// convert the current groups from a byte array to a UserGroup Struct
+				userGroup := byteArrayToUserGroup(iter.Value())
 
-			// convert it back to a byte array
-			bArray := userGroupToByteArray(*userGroup)
+				if len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
+					// Adjust the groups
+					updatedGroups := adjustSlice(groupsToAdd, groupsToRemove, existingDBGroups)
+					userGroup.Groups = updatedGroups
+				}
 
-			// update leveldb with the new groups
-			err = db.Put(iter.Key(), bArray, nil)
-			check(err)
+				if len(sshKeysToAdd) > 0 || len(sshKeysToRemove) > 0 {
+					// Adjust the keys
+					updatedSSHKeys := adjustSlice(sshKeysToAdd, sshKeysToRemove, existingSSHKeys)
 
+					// Update the authorized Keys
+					updateAuthorizedKeyFile(parseUserKey(string(iter.Key())), updatedSSHKeys)
+
+					userGroup.SSHKeys = updatedSSHKeys
+				}
+
+				// convert it back to a byte array
+				bArray := userGroupToByteArray(*userGroup)
+
+				// update leveldb with the new groups
+				err = db.Put(iter.Key(), bArray, nil)
+				check(err)
+			}
 		}
 	}
 	iter.Release()
