@@ -158,10 +158,11 @@ func TestDeleteGroup2(t *testing.T) {
 }
 
 func TestAdjustGroups(t *testing.T) {
-	existingGroups := []string{"a", "b", "c"}
-	addGroups := []string{"d"}
-	removeGroups := []string{"c"}
+	existingGroups := []string{"a", "b", "c", "d", "e"}
+	addGroups := []string{"f", "g"}
+	removeGroups := []string{"c", "d"}
 
 	newGroups := adjustGroups(addGroups, removeGroups, existingGroups)
+	fmt.Println(len(newGroups))
 	fmt.Println(newGroups)
 }
