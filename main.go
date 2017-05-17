@@ -179,6 +179,13 @@ func deleteAuthorizedKeyFile(user ArgoUser, sshDir string) {
 	check(err)
 }
 
+func updateAuthorizedKeyFile(user string, sshkeys []string) {
+	argoUser := ArgoUser{sshkeys, user, ""}
+	sshDir := "/home/" + user + "/.ssh"
+	deleteAuthorizedKeyFile(argoUser, sshDir)
+	createAuthorizedKeyFile(argoUser, sshDir)
+}
+
 //Tested
 // Add the group via the exec command
 func groupAdd(groupName string) {
@@ -342,24 +349,24 @@ func contains(s []string, e string) bool {
 
 // Tested
 // adjust the groups
-func adjustGroups(groupsToAdd []string, groupsToRemove []string, existingGroups []string) []string {
-	newGroups := make([]string, 0)
-	if len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
-		if len(groupsToRemove) > 0 {
-			for _, existingGroup := range existingGroups {
-				if !contains(groupsToRemove, existingGroup) {
-					newGroups = append(newGroups, existingGroup)
+func adjustSlice(arrayAdd []string, arrayRemove []string, existingArray []string) []string {
+	newSlice := make([]string, 0)
+	if len(arrayAdd) > 0 || len(arrayRemove) > 0 {
+		if len(arrayRemove) > 0 {
+			for _, existingItem := range existingArray {
+				if !contains(arrayRemove, existingItem) {
+					newSlice = append(newSlice, existingItem)
 				}
 			}
 		}
 
-		if len(groupsToAdd) > 0 {
+		if len(arrayAdd) > 0 {
 			// append the new groups to the slice
-			newGroups = append(newGroups, groupsToAdd...)
+			newSlice = append(newSlice, arrayAdd...)
 		}
-		return newGroups
+		return newSlice
 	}
-	return existingGroups
+	return existingArray
 }
 
 ////////////////////////////  Main Functionality //////////////////////////////
@@ -617,13 +624,53 @@ func main() {
 			}
 
 			// Adjust the groups
-			updatedGroups := adjustGroups(groupsToAdd, groupsToRemove, existingDBGroups)
+			updatedGroups := adjustSlice(groupsToAdd, groupsToRemove, existingDBGroups)
+
+			// User SSH functionality
+
+			// Convert existing ssh keys in leveldb to the existing SSHKeys
+			existingSSHKeys := byteArrayToUserGroup(iter.Value()).SSHKeys
+
+			// Pull ssh keys from map created above
+			newMapSSHKeys := mUserSSHKeys[string(iter.Key())]
+
+			// check for groups to remove
+			sshKeysToRemove := make([]string, 0)
+			for _, existingSSHKey := range existingSSHKeys {
+				keyExists := contains(newMapSSHKeys, existingSSHKey)
+				if !keyExists {
+					fmt.Printf("Key %s is being removed from %s.\n", existingSSHKey, parseUserKey(string(iter.Key())))
+
+					// add group to the remove group slice
+					sshKeysToRemove = append(sshKeysToRemove, existingSSHKey)
+				}
+			}
+
+			sshKeysToAdd := make([]string, 0)
+			for _, newMapSSHKey := range newMapSSHKeys {
+				keyExists := contains(existingSSHKeys, newMapSSHKey)
+				if !keyExists {
+					fmt.Printf("Group %s is being added to %s.\n", newMapSSHKey, parseUserKey(string(iter.Key())))
+
+					// add group to the add group slice
+					sshKeysToAdd = append(sshKeysToAdd, newMapSSHKey)
+				}
+			}
+
+			// Adjust the groups
+			updatedSSHKeys := adjustSlice(sshKeysToAdd, sshKeysToRemove, existingSSHKeys)
+
+			// Update the authorized Keys
+			updateAuthorizedKeyFile(parseUserKey(string(iter.Key())), updatedSSHKeys)
+
+			// Update LevelDB
 
 			// convert the current groups from a byte array to a UserGroup Struct
 			userGroup := byteArrayToUserGroup(iter.Value())
 
-			// set the current groups to the newly modified groups
+			// set the current groups and keys to the newly modified items
 			userGroup.Groups = updatedGroups
+			userGroup.SSHKeys = updatedSSHKeys
 
 			// convert it back to a byte array
 			bArray := userGroupToByteArray(*userGroup)
@@ -632,19 +679,6 @@ func main() {
 			err = db.Put(iter.Key(), bArray, nil)
 			check(err)
 
-			// User SSH functionality
-
-			// Convert existing ssh keys in leveldb to the existing SSHKeys
-			existingSSHKeys := byteArrayToUserGroup(iter.Value()).SSHKeys
-			for _, existingSSHKey := range existingSSHKeys {
-				fmt.Println(existingSSHKey)
-			}
-
-			// Pull groups from map created above
-			newMapSSHKeys := mUserSSHKeys[parseUserKey(string(iter.Key()))]
-			for _, newMapSSHKey := range newMapSSHKeys {
-				fmt.Println(newMapSSHKey)
-			}
 		}
 	}
 	iter.Release()
