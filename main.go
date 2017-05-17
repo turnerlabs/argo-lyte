@@ -369,15 +369,17 @@ var workDirectory string
 var userURL string
 var sudoGroups string
 var delete bool
-var test bool
+var retrievefile bool
+var removefiles bool
 
 func init() {
 	flag.StringVar(&dbLocation, "dblocation", "/tmp/db", "leveldb location")
 	flag.StringVar(&workDirectory, "workdirectory", "/tmp/eau-work", "temporary working location")
 	flag.StringVar(&userURL, "userurl", "", "argo url to tarred and gzipd user / groups files.")
 	flag.StringVar(&sudoGroups, "sudogroups", "", "groups to add as sudo. ex. group1, group2")
-	flag.BoolVar(&delete, "delete", false, "delete everything")
-	flag.BoolVar(&test, "test", false, "run without usimg local database")
+	flag.BoolVar(&delete, "delete", false, "deletes groups and users")
+	flag.BoolVar(&retrievefile, "retrievefile", true, "retrieves file from remote location")
+	flag.BoolVar(&removefiles, "removefiles", true, "removes files from retrieval")
 }
 
 // Main
@@ -409,7 +411,7 @@ func main() {
 
 	defer db.Close()
 
-	if test == false {
+	if retrievefile == true {
 		// retrieve the user group file and uncompress it into the work directory
 		getUserGroupFile(workDirectory, userURL)
 	}
@@ -652,7 +654,7 @@ func main() {
 			}
 		}
 	}
-	if test == false {
+	if removefiles == true {
 		// Remove working directory from possible prying eyes
 		err = os.RemoveAll(workDirectory)
 		check(err)
