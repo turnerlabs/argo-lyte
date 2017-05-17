@@ -654,35 +654,40 @@ func main() {
 				}
 			}
 
+			fmt.Printf("groupsToAdd: %d\n", len(groupsToAdd))
+			fmt.Printf("groupsToRemove: %d\n", len(groupsToRemove))
+			fmt.Printf("sshKeysToAdd: %d\n", len(sshKeysToAdd))
+			fmt.Printf("sshKeysToRemove: %d\n", len(sshKeysToRemove))
+
 			// Update LevelDB
 
 			// if len(sshKeysToAdd) > 0 || len(sshKeysToRemove) > 0 || len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
 
-			// convert the current groups from a byte array to a UserGroup Struct
-			userGroup := byteArrayToUserGroup(iter.Value())
+			// 	// convert the current groups from a byte array to a UserGroup Struct
+			// 	userGroup := byteArrayToUserGroup(iter.Value())
 
-			// if len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
-			// Adjust the groups
-			updatedGroups := adjustSlice(groupsToAdd, groupsToRemove, existingDBGroups)
-			userGroup.Groups = updatedGroups
-			// }
+			// 	if len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
+			// 		// Adjust the groups
+			// 		updatedGroups := adjustSlice(groupsToAdd, groupsToRemove, existingDBGroups)
+			// 		userGroup.Groups = updatedGroups
+			// 	}
 
-			// if len(sshKeysToAdd) > 0 || len(sshKeysToRemove) > 0 {
-			// Adjust the keys
-			updatedSSHKeys := adjustSlice(sshKeysToAdd, sshKeysToRemove, existingSSHKeys)
+			// 	if len(sshKeysToAdd) > 0 || len(sshKeysToRemove) > 0 {
+			// 		// Adjust the keys
+			// 		updatedSSHKeys := adjustSlice(sshKeysToAdd, sshKeysToRemove, existingSSHKeys)
 
-			// Update the authorized Keys
-			updateAuthorizedKeyFile(parseUserKey(string(iter.Key())), updatedSSHKeys)
+			// 		// Update the authorized Keys
+			// 		updateAuthorizedKeyFile(parseUserKey(string(iter.Key())), updatedSSHKeys)
 
-			userGroup.SSHKeys = updatedSSHKeys
-			// }
+			// 		userGroup.SSHKeys = updatedSSHKeys
+			// 	}
 
-			// convert it back to a byte array
-			bArray := userGroupToByteArray(*userGroup)
+			// 	// convert it back to a byte array
+			// 	bArray := userGroupToByteArray(*userGroup)
 
-			// update leveldb with the new groups
-			err = db.Put(iter.Key(), bArray, nil)
-			check(err)
+			// 	// update leveldb with the new groups
+			// 	err = db.Put(iter.Key(), bArray, nil)
+			// 	check(err)
 			// }
 		}
 	}
