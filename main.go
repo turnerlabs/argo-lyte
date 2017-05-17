@@ -577,6 +577,7 @@ func main() {
 			check(err)
 			userDelete(parseUserKey(string(iter.Key())))
 		} else {
+			// User Group functionality
 
 			// Convert groups in leveldb to the existing groups
 			existingDBGroups := byteArrayToUserGroup(iter.Value()).Groups
@@ -613,18 +614,35 @@ func main() {
 				}
 			}
 
-			// Update the groups for the user in leveldb
+			// Adjust the groups
 			updatedGroups := adjustGroups(groupsToAdd, groupsToRemove, existingDBGroups)
 
 			// convert the current groups from a byte array to a UserGroup Struct
 			userGroup := byteArrayToUserGroup(iter.Value())
+
 			// set the current groups to the newly modified groups
 			userGroup.Groups = updatedGroups
+
 			// convert it back to a byte array
 			bArray := userGroupToByteArray(*userGroup)
+
 			// update leveldb with the new groups
 			err = db.Put(iter.Key(), bArray, nil)
 			check(err)
+
+			// User SSH functionality
+
+			// Convert existing ssh keys in leveldb to the existing SSHKeys
+			existingSSHKeys := byteArrayToUserGroup(iter.Value()).SSHKeys
+			for _, existingSSHKey := range existingSSHKeys {
+				fmt.Println(existingSSHKey)
+			}
+
+			// Pull groups from map created above
+			newMapSSHKeys := mUser[parseUserKey(string(iter.Key()))]
+			for _, newMapSSHKey := range newMapSSHKeys {
+				fmt.Println(newMapSSHKey)
+			}
 		}
 	}
 	iter.Release()
@@ -636,7 +654,7 @@ func main() {
 	for iter.Next() {
 		//fmt.Printf("%s\n", mGroup[string(iter.Key())])
 		if mGroup[string(iter.Key())] == "" {
-			fmt.Printf("%s is missing.\n", string(iter.Key()))
+			fmt.Printf("Group %s is missing. Deleting group in leveldb.\n", string(iter.Key()))
 			err = db.Delete([]byte(iter.Key()), nil)
 			check(err)
 			groupDelete(string(iter.Value()))
