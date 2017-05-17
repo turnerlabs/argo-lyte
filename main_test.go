@@ -156,12 +156,32 @@ func TestDeleteGroup2(t *testing.T) {
 	groupDelete(test)
 }
 
-func TestAdjustGroups(t *testing.T) {
+func TestAdjustSlice(t *testing.T) {
 	existingGroups := []string{"a", "b", "c", "d", "e"}
 	addGroups := []string{"f", "g"}
 	removeGroups := []string{"c", "d"}
 
-	newGroups := adjustGroups(addGroups, removeGroups, existingGroups)
+	newGroups := adjustSlice(addGroups, removeGroups, existingGroups)
 	assert.Equal(t, len(newGroups), 5)
 	assert.Equal(t, newGroups, []string{"a", "b", "e", "f", "g"})
+}
+
+func TestAdjustSliceAddOnly(t *testing.T) {
+	existingGroups := []string{"a", "b", "c", "d", "e"}
+	addGroups := []string{"f", "g"}
+	removeGroups := []string{}
+
+	newGroups := adjustSlice(addGroups, removeGroups, existingGroups)
+	assert.Equal(t, len(newGroups), 5)
+	assert.Equal(t, newGroups, []string{"a", "b", "c", "d", "e", "f", "g"})
+}
+
+func TestAdjustSliceDeleteOnly(t *testing.T) {
+	existingGroups := []string{"a", "b", "c", "d", "e"}
+	addGroups := []string{}
+	removeGroups := []string{"c", "d"}
+
+	newGroups := adjustSlice(addGroups, removeGroups, existingGroups)
+	assert.Equal(t, len(newGroups), 5)
+	assert.Equal(t, newGroups, []string{"a", "b", "e"})
 }
