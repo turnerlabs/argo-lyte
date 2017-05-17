@@ -670,6 +670,10 @@ func main() {
 
 					updatedGroups := adjustSlice(groupsToAdd, groupsToRemove, existingDBGroups)
 
+					fmt.Println("****************BEFORE*******************")
+					fmt.Printf("Level(groups): %v\n", existingDBGroups)
+					fmt.Printf("Map(groups): %v\n", newMapGroups)
+					fmt.Println("****************AFTER*******************")
 					fmt.Printf("Current Groups: %v\n", userGroup.Groups)
 					fmt.Printf("Updated Groups: %v\n", updatedGroups)
 
@@ -680,7 +684,11 @@ func main() {
 					// Adjust the keys
 					updatedSSHKeys := adjustSlice(sshKeysToAdd, sshKeysToRemove, existingSSHKeys)
 
-					fmt.Printf("Current Keyss: %v\n", userGroup.SSHKeys)
+					fmt.Println("****************BEFORE*******************")
+					fmt.Printf("Level(keys): %v\n", existingSSHKeys)
+					fmt.Printf("Map(keys): %v\n", newMapSSHKeys)
+					fmt.Println("****************AFTER*******************")
+					fmt.Printf("Current Keys: %v\n", userGroup.SSHKeys)
 					fmt.Printf("Updated Keys: %v\n", updatedSSHKeys)
 
 					// Update the authorized Keys
