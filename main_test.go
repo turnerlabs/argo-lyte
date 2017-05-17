@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -163,6 +162,6 @@ func TestAdjustGroups(t *testing.T) {
 	removeGroups := []string{"c", "d"}
 
 	newGroups := adjustGroups(addGroups, removeGroups, existingGroups)
-	fmt.Println(len(newGroups))
-	fmt.Println(newGroups)
+	assert.Equal(t, len(newGroups), 5)
+	assert.Equal(t, newGroups, []string{"a", "b", "e", "f", "g"})
 }
