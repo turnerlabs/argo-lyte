@@ -351,21 +351,40 @@ func contains(s []string, e string) bool {
 // adjust the groups
 func adjustSlice(arrayAdd []string, arrayRemove []string, existingArray []string) []string {
 	newSlice := make([]string, 0)
-	copy(newSlice, existingArray)
+
 	if len(arrayAdd) > 0 || len(arrayRemove) > 0 {
-		if len(arrayRemove) > 0 {
+		if len(arrayAdd) > 0 && len(arrayRemove) == 0 {
+			newSlice = append(newSlice, existingArray...)
+			for _, addItem := range arrayAdd {
+				if !contains(newSlice, addItem) {
+					newSlice = append(newSlice, addItem)
+				}
+			}
+			return newSlice
+		}
+
+		if len(arrayRemove) > 0 && len(arrayAdd) == 0 {
 			for _, existingItem := range existingArray {
 				if !contains(arrayRemove, existingItem) {
 					newSlice = append(newSlice, existingItem)
 				}
 			}
+			return newSlice
 		}
 
-		if len(arrayAdd) > 0 {
-			// append the new groups to the slice
+		if len(arrayAdd) > 0 && len(arrayRemove) > 0 {
+			newSlice2 := make([]string, 0)
+			newSlice = append(newSlice, existingArray...)
 			newSlice = append(newSlice, arrayAdd...)
+
+			for _, item := range newSlice {
+				if !contains(arrayRemove, item) {
+					newSlice2 = append(newSlice2, item)
+				}
+			}
+			return newSlice2
 		}
-		return newSlice
+
 	}
 	return existingArray
 }
