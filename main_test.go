@@ -163,7 +163,7 @@ func TestAdjustSlice(t *testing.T) {
 
 	newGroups := adjustSlice(addGroups, removeGroups, existingGroups)
 	assert.Equal(t, len(newGroups), 5)
-	assert.Equal(t, newGroups, []string{"a", "b", "e", "f", "g"})
+	assert.Equal(t, []string{"a", "b", "e", "f", "g"}, newGroups)
 }
 
 func TestAdjustSliceAddOnly(t *testing.T) {
@@ -173,7 +173,7 @@ func TestAdjustSliceAddOnly(t *testing.T) {
 
 	newGroups := adjustSlice(addGroups, removeGroups, existingGroups)
 	assert.Equal(t, len(newGroups), 5)
-	assert.Equal(t, newGroups, []string{"a", "b", "c", "d", "e", "f", "g"})
+	assert.Equal(t, []string{"a", "b", "c", "d", "e", "f", "g"}, newGroups)
 }
 
 func TestAdjustSliceDeleteOnly(t *testing.T) {
@@ -183,5 +183,5 @@ func TestAdjustSliceDeleteOnly(t *testing.T) {
 
 	newGroups := adjustSlice(addGroups, removeGroups, existingGroups)
 	assert.Equal(t, len(newGroups), 5)
-	assert.Equal(t, newGroups, []string{"a", "b", "e"})
+	assert.Equal(t, []string{"a", "b", "e"}, newGroups)
 }

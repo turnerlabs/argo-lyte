@@ -351,6 +351,7 @@ func contains(s []string, e string) bool {
 // adjust the groups
 func adjustSlice(arrayAdd []string, arrayRemove []string, existingArray []string) []string {
 	newSlice := make([]string, 0)
+	copy(newSlice, existingArray)
 	if len(arrayAdd) > 0 || len(arrayRemove) > 0 {
 		if len(arrayRemove) > 0 {
 			for _, existingItem := range existingArray {
@@ -361,7 +362,6 @@ func adjustSlice(arrayAdd []string, arrayRemove []string, existingArray []string
 		}
 
 		if len(arrayAdd) > 0 {
-			copy(newSlice, existingArray)
 			// append the new groups to the slice
 			newSlice = append(newSlice, arrayAdd...)
 		}
