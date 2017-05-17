@@ -361,6 +361,7 @@ func adjustSlice(arrayAdd []string, arrayRemove []string, existingArray []string
 		}
 
 		if len(arrayAdd) > 0 {
+			copy(newSlice, existingArray)
 			// append the new groups to the slice
 			newSlice = append(newSlice, arrayAdd...)
 		}
