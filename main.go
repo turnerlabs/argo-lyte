@@ -689,12 +689,12 @@ func main() {
 					userGroup.SSHKeys = updatedSSHKeys
 				}
 
-				// 	// convert it back to a byte array
-				// 	bArray := userGroupToByteArray(*userGroup)
+				// convert it back to a byte array
+				bArray := userGroupToByteArray(*userGroup)
 
-				// 	// update leveldb with the new groups
-				// 	err = db.Put(iter.Key(), bArray, nil)
-				// 	check(err)
+				// update leveldb with the new groups
+				err = db.Put(iter.Key(), bArray, nil)
+				check(err)
 			}
 		}
 	}
