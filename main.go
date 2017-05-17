@@ -343,7 +343,7 @@ func contains(s []string, e string) bool {
 // Tested
 // adjust the groups
 func adjustGroups(groupsToAdd []string, groupsToRemove []string, existingGroups []string) []string {
-	newGroups := make([]string, len(existingGroups))
+	newGroups := make([]string, 0)
 	if len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
 		if len(groupsToRemove) > 0 {
 			for _, existingGroup := range existingGroups {
