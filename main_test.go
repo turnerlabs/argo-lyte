@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -154,4 +155,13 @@ func TestDeleteGroup(t *testing.T) {
 func TestDeleteGroup2(t *testing.T) {
 	test := "justatestgroup2"
 	groupDelete(test)
+}
+
+func TestAdjustGroups(t *testing.T) {
+	existingGroups := []string{"a", "b", "c"}
+	addGroups := []string{"d"}
+	removeGroups := []string{"c"}
+
+	newGroups := adjustGroups(addGroups, removeGroups, existingGroups)
+	fmt.Println(newGroups)
 }

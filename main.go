@@ -23,6 +23,8 @@ import (
 // VERSION - version
 const VERSION = "0.0.3"
 
+////////////////////////////  Supporting Functionality //////////////////////////////
+
 // Generic check function to avoid repeatedly checking for errors and panic after logging error
 func check(e error) {
 	if e != nil {
@@ -338,7 +340,30 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-/////////////////////////////////////////////////////////////
+// Tested
+// adjust the groups
+func adjustGroups(groupsToAdd []string, groupsToRemove []string, existingGroups []string) []string {
+	newGroups := make([]string, len(existingGroups))
+	if len(groupsToAdd) > 0 || len(groupsToRemove) > 0 {
+		if len(groupsToRemove) > 0 {
+			for _, existingGroup := range existingGroups {
+				if !contains(groupsToRemove, existingGroup) {
+					newGroups = append(newGroups, existingGroup)
+				}
+			}
+		}
+
+		if len(groupsToAdd) > 0 {
+			// append the new groups to the slice
+			newGroups = append(newGroups, groupsToAdd...)
+		}
+		return newGroups
+	}
+	return existingGroups
+}
+
+////////////////////////////  Main Functionality //////////////////////////////
+
 var dbLocation string
 var workDirectory string
 var userURL string
@@ -378,64 +403,71 @@ func main() {
 
 	createWorkingDirectory(workDirectory)
 
-	// use level db to track users. needed for deletion.
+	// use level db to track users. needed for deletion and updates
 	db, err := leveldb.OpenFile(dbLocation, nil)
 	check(err)
 
 	defer db.Close()
 
 	if test == false {
-		// pull down the user group file and uncompress it into the work directory
+		// retrieve the user group file and uncompress it into the work directory
 		getUserGroupFile(workDirectory, userURL)
 	}
 
-	// map for users to groups and leveldb comparisons
+	// maps for users to groups and leveldb comparisons
 	mUserGroups := make(map[string][]string)
 	mGroup := make(map[string]string)
 	mUser := make(map[string]string)
 
 	// Loop through the groups directory creating groups
-	// and build the above map to eventually add the users to the appropriate groups
+	// and building the above map to eventually add the users to the appropriate groups
 	groupsDir := workDirectory + "/groups"
 	fmt.Printf("Reading directory: %s\n", groupsDir)
-	files, _ := ioutil.ReadDir(groupsDir)
+	files, err := ioutil.ReadDir(groupsDir)
+	check(err)
 	keyPrefix := "group@"
 	for _, file := range files {
+		// very the file has the json extension
 		if !strings.Contains(file.Name(), ".json") {
 			continue
 		}
 
+		// Marshall the json into the ArgoGroup struct
 		group := getGroupFromFile(file, groupsDir)
 
+		// build the key for the map and leveldb
 		key := keyPrefix + group.ID
 
 		// add group to map
 		mGroup[key] = group.ID
 
+		// get group from leveldb
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
+		// the delete here makes testing this much easier
 		if delete == true {
 			if data == nil {
-				os.Exit(0)
+				continue
 			}
 
+			fmt.Printf("Deleting group in leveldb with key: %s\n", key)
 			err = db.Delete([]byte(key), nil)
 			check(err)
+
+			//delete the group from the machine
 			groupDelete(group.ID)
 		} else {
-			newGroup := false
+			// Group is not in leveldb, create it as a new group.
 			if data == nil {
-				newGroup = true
 				fmt.Printf("Creating new group in leveldb with key: %s\n", key)
 				err = db.Put([]byte(key), []byte(group.ID), nil)
 				check(err)
+
+				// add the group to the machine
+				groupAdd(group.ID)
 			} else {
 				fmt.Printf("Group %s in leveldb with key: %s already exists.\n", group.ID, key)
-			}
-
-			if newGroup {
-				groupAdd(group.ID)
 			}
 		}
 
@@ -450,11 +482,12 @@ func main() {
 	}
 
 	// Loop through the users directory creating users,
-	// add the users to the appropriate groups,
+	// adding the users to the appropriate groups,
 	// create the .ssh directory and authorized_key file
 	usersDir := workDirectory + "/users"
 	fmt.Printf("Reading directory: %s\n", usersDir)
-	files, _ = ioutil.ReadDir(usersDir)
+	files, err = ioutil.ReadDir(usersDir)
+	check(err)
 	keyPrefix = "user@"
 
 	for _, file := range files {
@@ -462,36 +495,47 @@ func main() {
 			continue
 		}
 
+		// Marshall the json into the ArgoUser struct
 		user := getUserFromFile(file, usersDir)
 
+		// build the key for the map and leveldb
 		key := keyPrefix + user.ID
 
 		// add user to map
 		mUser[key] = user.ID
 
+		// get the user from leveldb
 		data, err := db.Get([]byte(key), nil)
 		checkWithoutPanic(err)
 
+		// the delete here makes testing this much easier
 		if delete == true {
+			if data == nil {
+				continue
+			}
+
+			fmt.Printf("Deleting user in leveldb with key: %s\n", key)
 			err = db.Delete([]byte(key), nil)
 			check(err)
+
+			//delete the user from the machine
 			userDelete(user.ID)
 		} else {
-			newUser := false
+			// User is not in leveldb, create it as a new user.
 			if data == nil {
 				fmt.Printf("Creating new user in leveldb with key: %s\n", key)
-				newUser = true
 				userGroup := UserGroup{Groups: mUserGroups[user.ID], SSHKeys: user.SSHkeys, ID: user.ID, Shell: user.Shell}
 				bArray := userGroupToByteArray(userGroup)
 				err = db.Put([]byte(key), bArray, nil)
 				check(err)
-			} else {
-				fmt.Printf("User %s with groups: %v in leveldb with key: %s already exists.\n", user.ID, byteArrayToUserGroup(data).Groups, key)
-			}
 
-			if newUser {
 				groups := mUserGroups[user.ID]
+
+				// add the user to the machine
 				userAdd(user, groups)
+
+				// !!!!!!!!! May need to add a slight delay here to avoid race condition of creating user and
+				// then creating directory for ssh keys using the home directory since I am using an exec in the above code !!!!!!!!!!
 
 				// Create the .ssh directory with only the users accessible permissions then
 				// put the ssh key in the directory(which should allow the user to ssh in)
@@ -508,77 +552,77 @@ func main() {
 				check(err)
 
 				if len(user.SSHkeys) > 0 {
-					// need to add keys to leveldb to allow checking for changes
-
 					createAuthorizedKeyFile(user, sshDir)
 				}
+
+			} else {
+				fmt.Printf("User %s with groups: %v in leveldb with key: %s already exists.\n", user.ID, byteArrayToUserGroup(data).Groups, key)
 			}
 		}
 	}
 
 	// Loop thru all the records in leveldb with the user prefix and see if they exist in the mUser map.
 	// Any that exist in leveldb but not in the map should be removed.
-	// If the user exists in both the map and leveldb, check the groups to make sure we didn't add or remove the user from a group
+	// If the user exists in both the map and leveldb,
+	// - check the groups to make sure we didn't add or remove the user from a group
+	// - check the ssh keys to see if they have chnaged
 	iter := db.NewIterator(util.BytesPrefix([]byte("user@")), nil)
 	for iter.Next() {
+		// if the user is not in our map we created above
 		if mUser[string(iter.Key())] == "" {
-			fmt.Printf("%s is missing.\n", string(iter.Key()))
+			fmt.Printf("User %s is missing. Deleting user in leveldb.\n", string(iter.Key()))
 			err = db.Delete([]byte(iter.Key()), nil)
 			check(err)
 			userDelete(parseUserKey(string(iter.Key())))
 		} else {
-			// check the iterators value against the maps value
-			existingGroups := byteArrayToUserGroup(iter.Value()).Groups
-			newGroups := mUserGroups[parseUserKey(string(iter.Key()))]
+
+			// Convert groups in leveldb to the existing groups
+			existingDBGroups := byteArrayToUserGroup(iter.Value()).Groups
+
+			// Pull groups from map created above
+			newMapGroups := mUserGroups[parseUserKey(string(iter.Key()))]
 
 			// check for groups to remove
 			groupsToRemove := make([]string, 0)
-			for _, existingGroup := range existingGroups {
-				groupExists := contains(newGroups, existingGroup)
+			for _, existingDBGroup := range existingDBGroups {
+				groupExists := contains(newMapGroups, existingDBGroup)
 				if !groupExists {
-					fmt.Printf("Group %s is being removed from %s.\n", existingGroup, parseUserKey(string(iter.Key())))
-					groupsToRemove = append(groupsToRemove, existingGroup)
-					removeGroupFromUser(parseUserKey(string(iter.Key())), existingGroup)
+					fmt.Printf("Group %s is being removed from %s.\n", existingDBGroup, parseUserKey(string(iter.Key())))
+
+					// add group to the remove group slice
+					groupsToRemove = append(groupsToRemove, existingDBGroup)
+
+					// remove the group from the users profile on the machine
+					removeGroupFromUser(parseUserKey(string(iter.Key())), existingDBGroup)
 				}
 			}
-			// check for new group
+			// check for groups to add
 			groupsToAdd := make([]string, 0)
-			for _, newGroup := range newGroups {
-				groupExists := contains(existingGroups, newGroup)
+			for _, newMapGroup := range newMapGroups {
+				groupExists := contains(existingDBGroups, newMapGroup)
 				if !groupExists {
-					fmt.Printf("Group %s is being added to %s.\n", newGroup, parseUserKey(string(iter.Key())))
-					groupsToAdd = append(groupsToAdd, newGroup)
-					addGroupToUser(parseUserKey(string(iter.Key())), newGroup)
+					fmt.Printf("Group %s is being added to %s.\n", newMapGroup, parseUserKey(string(iter.Key())))
+
+					// add group to the add group slice
+					groupsToAdd = append(groupsToAdd, newMapGroup)
+
+					// add the group to the users profile on the machine
+					addGroupToUser(parseUserKey(string(iter.Key())), newMapGroup)
 				}
 			}
-			// if adding groups
-			if len(groupsToAdd) > 0 {
-				newGroups = make([]string, len(existingGroups))
-				copy(newGroups, existingGroups)
 
-				newGroups = append(newGroups, groupsToAdd...)
+			// Update the groups for the user in leveldb
+			updatedGroups := adjustGroups(groupsToAdd, groupsToRemove, existingDBGroups)
 
-				userGroup := byteArrayToUserGroup(iter.Value())
-				userGroup.Groups = newGroups
-				bArray := userGroupToByteArray(*userGroup)
-				err = db.Put(iter.Key(), bArray, nil)
-				check(err)
-			}
-			// if removing groups
-			if len(groupsToRemove) > 0 {
-				newGroups = make([]string, 0)
-				for _, existingGroup := range existingGroups {
-					if !contains(groupsToRemove, existingGroup) {
-						newGroups = append(newGroups, existingGroup)
-					}
-				}
-				userGroup := byteArrayToUserGroup(iter.Value())
-				userGroup.Groups = newGroups
-				bArray := userGroupToByteArray(*userGroup)
-
-				err = db.Put(iter.Key(), bArray, nil)
-				check(err)
-			}
+			// convert the current groups from a byte array to a UserGroup Struct
+			userGroup := byteArrayToUserGroup(iter.Value())
+			// set the current groups to the newly modified groups
+			userGroup.Groups = updatedGroups
+			// convert it back to a byte array
+			bArray := userGroupToByteArray(*userGroup)
+			// update leveldb with the new groups
+			err = db.Put(iter.Key(), bArray, nil)
+			check(err)
 		}
 	}
 	iter.Release()
