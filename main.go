@@ -418,6 +418,7 @@ func main() {
 
 	// maps for users to groups and leveldb comparisons
 	mUserGroups := make(map[string][]string)
+	mUserSSHKeys := make(map[string][]string)
 	mGroup := make(map[string]string)
 	mUser := make(map[string]string)
 
@@ -505,6 +506,7 @@ func main() {
 
 		// add user to map
 		mUser[key] = user.ID
+		mUserSSHKeys[key] = user.SSHkeys
 
 		// get the user from leveldb
 		data, err := db.Get([]byte(key), nil)
@@ -639,7 +641,7 @@ func main() {
 			}
 
 			// Pull groups from map created above
-			newMapSSHKeys := mUser[parseUserKey(string(iter.Key()))]
+			newMapSSHKeys := mUserSSHKeys[parseUserKey(string(iter.Key()))]
 			for _, newMapSSHKey := range newMapSSHKeys {
 				fmt.Println(newMapSSHKey)
 			}
