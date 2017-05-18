@@ -22,7 +22,7 @@ This program pulls down the argonauts file from an S3 bucket, un-tars it, and pr
 ### Read thru group files and compare the groups to the groups in leveldb to see if a new group was added or removed
 
 ### Things still to resolve
-1. Dealing with users changing keys
+1. Dealing with users changing keys(a few more tests to verify)
 
 ### Supported Operating Systems
 1. Ubuntu 14.04
