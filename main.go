@@ -22,7 +22,7 @@ import (
 //////// All tests were run on a vagrant ubuntu 14.04 image; other os's will be supported in the future ///////////
 
 // VERSION - version
-const VERSION = "0.0.4"
+const VERSION = "0.0.3"
 
 ////////////////////////////  Supporting Functionality //////////////////////////////
 
