@@ -29,7 +29,7 @@ diff:
 ifndef DIFFER
 	go get -u github.com/kevinburke/differ
 endif
-	differ $(MAKE) assets
+	differ $(MAKE)
 
 bench:
 ifndef BENCHSTAT

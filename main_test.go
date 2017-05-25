@@ -1,27 +1,58 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+var isSudo bool
+
+func init() {
+	flag.BoolVar(&isSudo, "issudo", false, "run tests as sudo")
+
+	flag.Parse()
+}
+
 // These are fairly high level happy path tests.  I need to write negative tests.
 
-func TestGetGIDByGroupName(t *testing.T) {
-	result := getGIDByGroupName("root")
+// getGIDByGroupName
+func TestGetGIDByGroupNamePass(t *testing.T) {
+	group := "sys"
+	result, err := getGIDByGroupName(group)
+	assert.Nil(t, err)
+	assert.Equal(t, result, 3)
+}
+
+func TestGetGIDByGroupNameFail(t *testing.T) {
+	group := "thiswillfail"
+	result, err := getGIDByGroupName(group)
+	assert.NotNil(t, err)
+	assert.Equal(t, result, -1)
+}
+
+// getUIDByUserName
+func TestGetUIDByUserNamePass(t *testing.T) {
+	user := "root"
+	result, err := getUIDByUserName(user)
+	assert.Nil(t, err)
 	assert.Equal(t, result, 0)
 }
 
-func TestGetUIDByUserName(t *testing.T) {
-	result := getUIDByUserName("root")
-	assert.Equal(t, result, 0)
+func TestGetUIDByUserNameFail(t *testing.T) {
+	user := "thiswillfail"
+	result, err := getUIDByUserName(user)
+	assert.NotNil(t, err)
+	assert.Equal(t, result, -1)
 }
 
-// Test the byte array stuff
-func TestUserGroupByteArray(t *testing.T) {
+// userGroupToByteArray
+func TestUserGroupByteArrayPass(t *testing.T) {
 	userGroupIn := UserGroup{[]string{"a", "b", "c"}, []string{"M", "N", "O"}, "user1", "shell1"}
 
 	byteArray := userGroupToByteArray(userGroupIn)
@@ -34,39 +65,86 @@ func TestUserGroupByteArray(t *testing.T) {
 	assert.Equal(t, userGroupOut.Shell, "shell1")
 }
 
-// Test creation of working directory
-func TestCreateWorkingDirectory(t *testing.T) {
+// createWorkingDirectory
+func TestCreateWorkingDirectoryPass(t *testing.T) {
 	workDir := "/tmp/justatest"
-	createWorkingDirectory(workDir)
-	_, err := os.Stat(workDir)
+	err := createWorkingDirectory(workDir)
+	assert.Nil(t, err)
+
+	_, err = os.Stat(workDir)
 	assert.Nil(t, err)
 }
 
-// Test deletion of working directory
-func TestDeleteWorkingDirectory(t *testing.T) {
+func TestCreateWorkingDirectoryFail(t *testing.T) {
+	workDir := "/root/justatest"
+	if isSudo {
+		err := createWorkingDirectory(workDir)
+		assert.Nil(t, err)
+
+		_, err = os.Stat(workDir)
+		assert.Nil(t, err)
+	} else {
+		err := createWorkingDirectory(workDir)
+		assert.Nil(t, err)
+
+		_, err = os.Stat(workDir)
+		assert.Equal(t, reflect.TypeOf(err), reflect.TypeOf(err.(*os.PathError)))
+	}
+}
+
+// deleteWorkingDirectory
+func TestDeleteWorkingDirectoryPass(t *testing.T) {
 	workDir := "/tmp/justatest"
-	deleteWorkingDirectory(workDir)
-	_, err := os.Stat(workDir)
+	err := deleteWorkingDirectory(workDir)
+	assert.Nil(t, err)
+
+	_, err = os.Stat(workDir)
 	assert.Nil(t, err)
 }
 
-// Test get group from file
-func TestGetGroup(t *testing.T) {
+func TestDeleteWorkingDirectoryFail(t *testing.T) {
+	workDir := "/tmp/justatest10"
+	err := deleteWorkingDirectory(workDir)
+
+	assert.Equal(t, reflect.TypeOf(err), reflect.TypeOf(err.(*os.PathError)))
+	assert.NotNil(t, err)
+}
+
+// getGroupFromFile
+func TestGetGroupPass(t *testing.T) {
 	groupsDir := "./groups"
 	files, _ := ioutil.ReadDir(groupsDir)
-	result := getGroupFromFile(files[0], groupsDir)
+	result, err := getGroupFromFile(files[0], groupsDir)
 	assert.Equal(t, result.ID, "test")
+	assert.Nil(t, err)
 }
 
-// Test get user from file
-func TestGetUser(t *testing.T) {
+func TestGetGroupFail(t *testing.T) {
+	groupsDir := "./"
+	files, _ := ioutil.ReadDir(groupsDir)
+	result, err := getGroupFromFile(files[0], groupsDir)
+	assert.Equal(t, reflect.TypeOf(err), reflect.TypeOf(err.(*os.PathError)))
+	assert.Nil(t, result)
+}
+
+// getUserFromFile
+func TestGetUserPass(t *testing.T) {
 	usersDir := "./users"
 	files, _ := ioutil.ReadDir(usersDir)
-	result := getGroupFromFile(files[0], usersDir)
+	result, err := getUserFromFile(files[0], usersDir)
 	assert.Equal(t, result.ID, "test")
+	assert.Nil(t, err)
 }
 
-// Test contains function
+func TestGetUserFail(t *testing.T) {
+	usersDir := "./"
+	files, _ := ioutil.ReadDir(usersDir)
+	result, err := getUserFromFile(files[0], usersDir)
+	assert.Equal(t, reflect.TypeOf(err), reflect.TypeOf(err.(*os.PathError)))
+	assert.Nil(t, result)
+}
+
+// contains
 func TestDoesContain(t *testing.T) {
 	test := []string{"hello", "world"}
 	result := contains(test, "world")
@@ -79,82 +157,195 @@ func TestDoesNotContain(t *testing.T) {
 	assert.Equal(t, result, false)
 }
 
-// Test parse user key
-func TestParseUserKey(t *testing.T) {
-	test := "user@12345"
-	result := parseUserKey(test)
+func TestDoesNotContainFail(t *testing.T) {
+	test := []string{}
+	result := contains(test, "")
+	assert.Equal(t, result, false)
+}
+
+// parseUserKey
+func TestParseUserKeyPass(t *testing.T) {
+	userKey := "user@12345"
+	result, err := parseUserKey(userKey)
+	assert.Nil(t, err)
 	assert.Equal(t, result, "12345")
 }
 
-// Must run as sudo
+func TestParseUserKeyFailEmpty(t *testing.T) {
+	userKey := ""
+	result, err := parseUserKey(userKey)
+	assert.Equal(t, err, errors.New("Empty string passed in"))
+	assert.Equal(t, result, "")
+}
 
-// Test Add Group
+func TestParseUserKeyFailNoAmpersand(t *testing.T) {
+	userKey := "test123"
+	result, err := parseUserKey(userKey)
+	assert.Equal(t, err, errors.New("No ampersand passed in fullkey or multiple ampersands passed"))
+	assert.Equal(t, result, "")
+}
+
+func TestParseUserKeyFailMultipleAmpersand(t *testing.T) {
+	userKey := "test123@test@test1"
+	result, err := parseUserKey(userKey)
+	assert.Equal(t, err, errors.New("No ampersand passed in fullkey or multiple ampersands passed"))
+	assert.Equal(t, result, "")
+}
+
+//////////// The following tests run as non sudo and handle cases where they should be run as sudo gracefully. ////////////
+
+// groupAdd
 func TestAddGroup(t *testing.T) {
 	test := "justatestgroup"
-	groupAdd(test)
+	if isSudo {
+		err := groupAdd(test)
+		assert.Nil(t, err)
+	} else {
+		err := groupAdd(test)
+		errString := "exit status 10: groupadd: Permission denied.\ngroupadd: cannot lock /etc/group; try again later.\n"
+		assert.Equal(t, err, errors.New(errString))
+	}
 }
 
 func TestAddGroup2(t *testing.T) {
 	test := "justatestgroup2"
-	groupAdd(test)
+	if isSudo {
+		err := groupAdd(test)
+		assert.Nil(t, err)
+	} else {
+		err := groupAdd(test)
+		errString := "exit status 10: groupadd: Permission denied.\ngroupadd: cannot lock /etc/group; try again later.\n"
+		assert.Equal(t, err, errors.New(errString))
+	}
 }
 
-// Test Add User
+// userAdd
 func TestAddUser(t *testing.T) {
 	user := ArgoUser{[]string{"testkey"}, "justauserid", "/bin/bash"}
-	userAdd(user, []string{"justatestgroup"})
+	if isSudo {
+		err := userAdd(user, []string{"justatestgroup"})
+		assert.Nil(t, err)
+	} else {
+		err := userAdd(user, []string{"justatestgroup"})
+		errString := "exit status 6: useradd: group 'justatestgroup' does not exist\n"
+		assert.Equal(t, err, errors.New(errString))
+	}
 }
 
-// Test Add User to Group
+// addGroupToUser
 func TestAddUserToGroup(t *testing.T) {
-	addGroupToUser("justauserid", "justatestgroup2")
+	user := "justauserid"
+	group := "justatestgroup2"
+	if isSudo {
+		err := addGroupToUser(user, group)
+		assert.Nil(t, err)
+	} else {
+		err := addGroupToUser(user, group)
+		errString := "exit status 6: usermod: group 'justatestgroup2' does not exist\n"
+		assert.Equal(t, err, errors.New(errString))
+	}
 }
 
-// Test Add Authorization Key
+// createAuthorizedKeyFile
 func TestAddAuthorizedKey(t *testing.T) {
+	dir := "/home/justauserid"
 	user := ArgoUser{[]string{"testkey"}, "justauserid", "/bin/bash"}
-	createAuthorizedKeyFile(user, "/home/justauserid")
+	if isSudo {
+		err := createAuthorizedKeyFile(user, dir)
+		assert.Nil(t, err)
+	} else {
+		err := createAuthorizedKeyFile(user, dir)
+		errString := "open /home/justauserid/authorized_keys: no such file or directory"
+		assert.Equal(t, err.Error(), errString)
+	}
 }
 
-// Test add group to /etc/sudoers.d to allow sudo
-
+// addGroupToSudoers
 func TestAddGroupToSudoers(t *testing.T) {
-	addGroupToSudoers("justatestgroup")
+	group := "justatestgroup"
+	if isSudo {
+		err := addGroupToSudoers(group)
+		assert.Nil(t, err)
+	} else {
+		err := addGroupToSudoers(group)
+		errString := "open /etc/sudoers.d/argo-justatestgroup: permission denied"
+		assert.Equal(t, err.Error(), errString)
+	}
 }
 
-// Test delete /etc/sudoers.d/argo-users
-
+// deleteSudoersFiles
 func TestDeleteSudoersFile(t *testing.T) {
 	deleteSudoersFiles()
 }
 
-// Test Delete Authorization Key
+// deleteAuthorizedKeyFile
 func TestDeleteAuthorizedKey(t *testing.T) {
+	dir := "/home/justauserid"
 	user := ArgoUser{[]string{"testkey"}, "justauserid", "/bin/bash"}
-	deleteAuthorizedKeyFile(user, "/home/justauserid")
+	if isSudo {
+		err := deleteAuthorizedKeyFile(user, dir)
+		assert.Nil(t, err)
+	} else {
+		err := deleteAuthorizedKeyFile(user, dir)
+		errString := "remove /home/justauserid/authorized_keys: no such file or directory"
+		assert.Equal(t, err.Error(), errString)
+	}
 }
 
-// Test Remove User from Group
+// removeGroupFromUser
 func TestRemoveUserToGroup(t *testing.T) {
-	removeGroupFromUser("justauserid", "justatestgroup2")
+	user := "justauserid"
+	group := "justatestgroup2"
+	if isSudo {
+		err := removeGroupFromUser(user, group)
+		assert.Nil(t, err)
+	} else {
+		err := removeGroupFromUser(user, group)
+		errString := "exit status 3: gpasswd: group 'justatestgroup2' does not exist in /etc/group\n"
+		assert.Equal(t, err.Error(), errString)
+	}
 }
 
-// Test Delete User
+// userDelete
 func TestDeleteUser(t *testing.T) {
-	userDelete("justauserid")
+	user := "justauserid"
+	if isSudo {
+		err := userDelete(user)
+		assert.Nil(t, err)
+	} else {
+		err := userDelete(user)
+		errString := "exit status 6: userdel: user 'justauserid' does not exist\n"
+		assert.Equal(t, err.Error(), errString)
+	}
 }
 
-// Test Delete Group
+// groupDelete
 func TestDeleteGroup(t *testing.T) {
-	test := "justatestgroup"
-	groupDelete(test)
+	group := "justatestgroup"
+	if isSudo {
+		err := groupDelete(group)
+		assert.Nil(t, err)
+	} else {
+		err := groupDelete(group)
+		errString := "exit status 6: groupdel: group 'justatestgroup' does not exist\n"
+		assert.Equal(t, err.Error(), errString)
+	}
 }
 
 // Test Delete Group
 func TestDeleteGroup2(t *testing.T) {
-	test := "justatestgroup2"
-	groupDelete(test)
+	group := "justatestgroup2"
+	if isSudo {
+		err := groupDelete(group)
+		assert.Nil(t, err)
+	} else {
+		err := groupDelete(group)
+		errString := "exit status 6: groupdel: group 'justatestgroup2' does not exist\n"
+		assert.Equal(t, err.Error(), errString)
+	}
 }
+
+// adjustSlice
 
 func TestAdjustSliceAddOnly(t *testing.T) {
 	existingGroups := []string{"a", "b", "c", "d", "e"}
